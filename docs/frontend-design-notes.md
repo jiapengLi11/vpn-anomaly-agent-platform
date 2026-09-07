@@ -55,3 +55,19 @@ Python Agent 使用相同文档、分词和评分公式，CI 比较两端排序�
 手机端把查询框和按钮纵向排列，来源哈希允许换行；Playwright 验证查询、来源展开、空结果及无横向溢出。
 
 ![移动端知识检索](assets/knowledge-search-mobile.png)
+
+## 知识问答迭代
+
+知识模块进一步明确为用户输入问题、获取解释并继续追问的领域问答。主栏呈现对话，侧栏查看引用原文，
+不要求用户先填写研判表单。入口提供流量特征、模型原理、研判方法与知识检索四类问题示例。
+新增 vpn-knowledge-qa 运行时 Skill，规定直接回答、解释边界和逐段来源引用；DeepSeek 接口负责生成，
+Python 负责结构与引用 ID 校验。公开站继续标记原文摘录，不冒充模型生成。
+
+![知识问答与引用原文](assets/knowledge-qa.png)
+
+完成本地 DeepSeek 真实请求后的界面如下，显示生成回答、来源引用和模型用量。
+
+![DeepSeek 真实回答](assets/knowledge-qa-deepseek.png)
+
+浏览器回归脚本 `tools/check_knowledge_qa.js` 验证提问、追问、引用定位、新对话、无结果、缺少密钥提示
+与手机端无横向溢出。后端 HTTP Mock 覆盖超时、空内容、JSON 截断与未知引用；真实模型质量需要独立验收。

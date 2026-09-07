@@ -27,6 +27,12 @@
 
 ## Search the knowledge base
 
+知识模块已升级为 **知识问答**，支持连续提问、引用跳转与本地 DeepSeek 回答。
+[问答与密钥配置](docs/knowledge-qa.md)说明两种运行方式和专用 Skill。
+公开站默认显示原文摘录；真正的模型回答需要本地服务和你的 API Key。
+
+![知识问答](docs/assets/knowledge-qa.png)
+
 [在线知识检索](https://jiapengli11.github.io/vpn-anomaly-agent-platform/#/knowledge) 已可直接使用。
 查询 `UDP 会话特征`、`开放集拒识` 或 `LONG_SESSION`，可查看文档片段、来源、版本和原文 SHA-256。
 3 篇自编 Markdown 切成 6 个片段，BM25 在浏览器本地执行；Python API 和 Agent 使用同一语料与评分公式。
@@ -86,7 +92,7 @@ npm run dev
 
 ## Verification
 
-- 14 个 Python 测试覆盖 Agent/API 与文档检索；9 个 Node 测试验证浏览器/Python 检索排序、分数与空结果一致。
+- 22 个 Python 测试覆盖 Agent/API、检索与问答异常/引用校验；9 个 Node 测试验证浏览器/Python 检索排序、分数与空结果一致。
 - Vue production build 已验证，`npm audit` 为 0 个已知漏洞。
 - Playwright CLI 已验证 1440px 与 390px 关键页面，浏览器控制台 0 错误。
 - CI 在 Python 3.12 重建合成数据，并执行后端测试、前端构建和跨语言检索一致性测试。
@@ -99,7 +105,7 @@ npm run dev
 ## Known limitations
 
 - 自由文本目前只标记 `UNVERIFIED_NARRATIVE`，尚未做逐句语义蕴含验证。
-- 合成演示使用确定性 analyst；接入外部 LLM 时仍需独立做 Prompt/模型评测。
+- 合成演示使用确定性 analyst；DeepSeek 知识问答已完成真实单例 smoke 验证，系统质量仍需独立评测。
 - Element Plus 已按需加载，当前最大 JS 块约 200 KB；仍可继续做路由级预加载与性能度量。
 - 图数据库、向量检索和训练分类器属于可插拔集成点，不在公开演示的运行依赖中。
 
