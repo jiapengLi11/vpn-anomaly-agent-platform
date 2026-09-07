@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from traffic_agent.demo import run_demo  # noqa: E402
+from traffic_agent.knowledge import load_chunks, search  # noqa: E402
 
 
 def main():
@@ -25,7 +26,7 @@ def main():
         "modelExecution": {"actualModelBackend": "SEQUENCE_ENCODER_DEMO", "adapterReady": True,
                            "note": "Synthetic classifier output for interface demonstration only."},
         "agentWorkflowStatus": agent["status"], "agentRuntimeBackend": agent["runtimeBackend"],
-        "agentAcceptedClaimCount": 1, "agentRejectedClaimCount": 1, "knowledgeHitCount": 1,
+        "agentAcceptedClaimCount": 1, "agentRejectedClaimCount": 1, "knowledgeHitCount": len(agent["knowledgeHits"]),
         "llmReportStatus": "SUCCESS", "llmCandidateInputCount": 1, "llmCandidateDeferredCount": 0,
     }
     report = {
@@ -52,7 +53,14 @@ def main():
     output.write_text(json.dumps({"mode": "SYNTHETIC_READ_ONLY", "generatedAt": now,
                                   "description": "Synthetic, non-production showcase data.",
                                   "tasks": [task], "previews": {task_id: preview}},
-                                 ensure_ascii=False), encoding="utf-8")
+                                 ensure_ascii=False) + "\n", encoding="utf-8")
+    output.with_name("knowledge.json").write_text(
+        json.dumps({"documents": load_chunks()}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8")
+    queries = ["开放集拒识", "UDP 会话特征", "LONG_SESSION", "BALANCED_EXCHANGE", "调查候选 恶意结论", "xyzunmatched987", "", "!!!"]
+    output.with_name("search-parity.json").write_text(
+        json.dumps([{ "query": q, "items": search(q)["items"] } for q in queries],
+                   ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(output)
 
 

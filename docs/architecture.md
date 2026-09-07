@@ -42,7 +42,18 @@ medium or strong item belonging to the same flow.
 Free-form narrative is retained for analyst usability but marked `UNVERIFIED_NARRATIVE`; only structured claims are
 machine-validated. This limitation is displayed in the UI and exported in the audit artifact.
 
-## Public-repository boundary
+## Document retrieval
+
+Self-authored Markdown files in `backend/traffic_agent/knowledge_docs` are split on second-level headings.
+Each chunk carries a content-derived ID, source filename, section, corpus version and SHA-256 of the source.
+The tokenizer uses English terms and overlapping Chinese bigrams. BM25 uses k1=1.5 and b=0.75.
+Candidate evidence codes form the Agent query. No matching terms means no hits.
+
+The fixture generator exports this corpus to the browser. Python and JavaScript scores and rankings are
+compared in CI on eight queries, including blank and unmatched inputs. This is implementation consistency
+testing, not a retrieval-quality benchmark. Dense retrieval, reranking and graph queries remain future work.
+
+## Public-repository contents
 
 The public repository includes the orchestration, controls, tests, synthetic fixture and UI. It does not include a
 trained detector, packet capture, private data, internal knowledge text, organization-specific code, or credentials.

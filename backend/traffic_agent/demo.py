@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from .agent.workflow import AgentWorkflow
+from .knowledge import retrieve_context
 
 
 def demo_candidate():
@@ -20,16 +21,6 @@ def demo_candidate():
 
 
 def build_demo_workflow():
-    def retriever(_context):
-        return {
-            "items": [{"id": "KB-BOUNDARY", "title": "Candidate interpretation boundary",
-                       "source": "public-rules.md",
-                       "content": "A candidate requires investigation and is not a maliciousness verdict."}],
-            "strategy": {"name": "hybrid_demo"},
-            "query": "encrypted traffic candidate evidence boundary",
-            "knowledgeBackend": "synthetic-json",
-        }
-
     def analyst(context):
         flow_id = context["candidates"][0]["flowId"]
         return {
@@ -44,7 +35,7 @@ def build_demo_workflow():
             ],
         }
 
-    return AgentWorkflow(retriever=retriever, analyst=analyst)
+    return AgentWorkflow(retriever=retrieve_context, analyst=analyst)
 
 
 def run_demo():

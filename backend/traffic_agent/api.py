@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from pydantic import BaseModel, Field
 
 from .demo import build_demo_workflow, demo_candidate
+from .knowledge import search
 
 
 class ReviewRequest(BaseModel):
@@ -16,6 +17,12 @@ class ReviewRequest(BaseModel):
 
 
 app = FastAPI(title="Evidence-grounded Traffic Agent", version="1.0.0")
+
+
+@app.get("/api/knowledge/search")
+def knowledge_search(q: str = Query(min_length=1, max_length=500),
+                     limit: int = Query(default=6, ge=1, le=20)):
+    return search(q, limit)
 
 
 @app.get("/health")

@@ -1,3 +1,4 @@
+import { searchPublicKnowledge } from './knowledge';
 let snapshot;
 export function isDemoMode() {
   const saved = localStorage.getItem("vpnDemoMode");
@@ -13,8 +14,11 @@ async function load() {
   return snapshot;
 }
 export async function demoRequest(path) {
-  const data = await load();
   const url = new URL(path, "http://local.invalid");
+  if (url.pathname === '/api/knowledge/search') {
+    return searchPublicKnowledge(url.searchParams.get('q') || '', Number(url.searchParams.get('limit') || 6));
+  }
+  const data = await load();
   if (url.pathname === "/actuator/health") return { status: "DEMO" };
   if (url.pathname === "/api/workbench") return { taskCount: data.tasks.length,
     statusCounts: { SUCCESS: data.tasks.length, PROCESSING: 0, WAITING: 0, FAILED: 0, CANCELED: 0 },

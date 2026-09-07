@@ -1,0 +1,221 @@
+[
+  {
+    "query": "开放集拒识",
+    "items": [
+      {
+        "id": "KB-1f3b587c6c36b2a0",
+        "title": "序列分类与开放集拒识",
+        "content": "序列编码分类器输出类别预测。开放集拒识 unknown 用于表达输入超出已知类别或模型信心不足；它不等于发现恶意流量。分类结果应携带执行后端和模型版本，并与确定性特征证据共同进入候选筛选。",
+        "source": "model-and-retrieval.md",
+        "section": "序列分类与开放集拒识",
+        "sourceHash": "4292b96f8e3a7e9d05bce7f4c81535aed28517204cc6d034d62248f733242246",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 8.508034,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      }
+    ]
+  },
+  {
+    "query": "UDP 会话特征",
+    "items": [
+      {
+        "id": "KB-1261a365d7c6dba7",
+        "title": "UDP 会话与双向流量",
+        "content": "UDP 会话特征应结合包数、字节数、持续时间和双向比例解释。BALANCED_EXCHANGE 表示双向交换信号；业务同步、实时通信也可能出现类似观测。请关联资产角色与业务时段，不按单个端口直接判定协议。",
+        "source": "flow-signals.md",
+        "section": "UDP 会话与双向流量",
+        "sourceHash": "b6fac8373b5235e52e20cb495a631d6be10ca7f44d6626ce425e344417565bc3",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 5.480262,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      },
+      {
+        "id": "KB-1f3b587c6c36b2a0",
+        "title": "序列分类与开放集拒识",
+        "content": "序列编码分类器输出类别预测。开放集拒识 unknown 用于表达输入超出已知类别或模型信心不足；它不等于发现恶意流量。分类结果应携带执行后端和模型版本，并与确定性特征证据共同进入候选筛选。",
+        "source": "model-and-retrieval.md",
+        "section": "序列分类与开放集拒识",
+        "sourceHash": "4292b96f8e3a7e9d05bce7f4c81535aed28517204cc6d034d62248f733242246",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 0.982029,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      },
+      {
+        "id": "KB-7de8fb605796915e",
+        "title": "引用与人工复核",
+        "content": "调查建议 INVESTIGATE 应引用当前会话的证据 ID，并核对证据强度和会话归属。知识文档只提供解释背景，不证明当前会话具备文档描述的行为。证据不足时保留 UNKNOWN，并列出需要人工核实的资产、业务用途和历史连接。",
+        "source": "review-boundaries.md",
+        "section": "引用与人工复核",
+        "sourceHash": "16bee6bcf3f9963a6972560b000bfbb7611e34266dc6c23624acd0b7a771f734",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 0.721716,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      },
+      {
+        "id": "KB-28da04190972691e",
+        "title": "长会话与周期性",
+        "content": "LONG_SESSION 长会话只说明持续时间触及配置阈值。周期性连接还应检查时间间隔、抖动和重复次数。阈值属于可调整策略，报告应保留观测值、阈值、规则版本与证据 ID，便于复查触发原因。",
+        "source": "flow-signals.md",
+        "section": "长会话与周期性",
+        "sourceHash": "b6fac8373b5235e52e20cb495a631d6be10ca7f44d6626ce425e344417565bc3",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 0.647192,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      },
+      {
+        "id": "KB-c9a7f7bac49a9c03",
+        "title": "调查候选不是恶意结论",
+        "content": "调查候选 candidate 表示需要复核。长会话 LONG_SESSION 与双向均衡 BALANCED_EXCHANGE 可以作为调查线索，但不能单独证明 VPN、攻击或恶意通信。观察到的事实、模型预测与知识参考必须分别记录。",
+        "source": "review-boundaries.md",
+        "section": "调查候选不是恶意结论",
+        "sourceHash": "16bee6bcf3f9963a6972560b000bfbb7611e34266dc6c23624acd0b7a771f734",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 0.472188,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      }
+    ]
+  },
+  {
+    "query": "LONG_SESSION",
+    "items": [
+      {
+        "id": "KB-c9a7f7bac49a9c03",
+        "title": "调查候选不是恶意结论",
+        "content": "调查候选 candidate 表示需要复核。长会话 LONG_SESSION 与双向均衡 BALANCED_EXCHANGE 可以作为调查线索，但不能单独证明 VPN、攻击或恶意通信。观察到的事实、模型预测与知识参考必须分别记录。",
+        "source": "review-boundaries.md",
+        "section": "调查候选不是恶意结论",
+        "sourceHash": "16bee6bcf3f9963a6972560b000bfbb7611e34266dc6c23624acd0b7a771f734",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 1.100357,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      },
+      {
+        "id": "KB-28da04190972691e",
+        "title": "长会话与周期性",
+        "content": "LONG_SESSION 长会话只说明持续时间触及配置阈值。周期性连接还应检查时间间隔、抖动和重复次数。阈值属于可调整策略，报告应保留观测值、阈值、规则版本与证据 ID，便于复查触发原因。",
+        "source": "flow-signals.md",
+        "section": "长会话与周期性",
+        "sourceHash": "b6fac8373b5235e52e20cb495a631d6be10ca7f44d6626ce425e344417565bc3",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 1.066538,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      }
+    ]
+  },
+  {
+    "query": "BALANCED_EXCHANGE",
+    "items": [
+      {
+        "id": "KB-c9a7f7bac49a9c03",
+        "title": "调查候选不是恶意结论",
+        "content": "调查候选 candidate 表示需要复核。长会话 LONG_SESSION 与双向均衡 BALANCED_EXCHANGE 可以作为调查线索，但不能单独证明 VPN、攻击或恶意通信。观察到的事实、模型预测与知识参考必须分别记录。",
+        "source": "review-boundaries.md",
+        "section": "调查候选不是恶意结论",
+        "sourceHash": "16bee6bcf3f9963a6972560b000bfbb7611e34266dc6c23624acd0b7a771f734",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 1.100357,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      },
+      {
+        "id": "KB-1261a365d7c6dba7",
+        "title": "UDP 会话与双向流量",
+        "content": "UDP 会话特征应结合包数、字节数、持续时间和双向比例解释。BALANCED_EXCHANGE 表示双向交换信号；业务同步、实时通信也可能出现类似观测。请关联资产角色与业务时段，不按单个端口直接判定协议。",
+        "source": "flow-signals.md",
+        "section": "UDP 会话与双向流量",
+        "sourceHash": "b6fac8373b5235e52e20cb495a631d6be10ca7f44d6626ce425e344417565bc3",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 1.047227,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      }
+    ]
+  },
+  {
+    "query": "调查候选 恶意结论",
+    "items": [
+      {
+        "id": "KB-c9a7f7bac49a9c03",
+        "title": "调查候选不是恶意结论",
+        "content": "调查候选 candidate 表示需要复核。长会话 LONG_SESSION 与双向均衡 BALANCED_EXCHANGE 可以作为调查线索，但不能单独证明 VPN、攻击或恶意通信。观察到的事实、模型预测与知识参考必须分别记录。",
+        "source": "review-boundaries.md",
+        "section": "调查候选不是恶意结论",
+        "sourceHash": "16bee6bcf3f9963a6972560b000bfbb7611e34266dc6c23624acd0b7a771f734",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 10.462044,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      },
+      {
+        "id": "KB-1f3b587c6c36b2a0",
+        "title": "序列分类与开放集拒识",
+        "content": "序列编码分类器输出类别预测。开放集拒识 unknown 用于表达输入超出已知类别或模型信心不足；它不等于发现恶意流量。分类结果应携带执行后端和模型版本，并与确定性特征证据共同进入候选筛选。",
+        "source": "model-and-retrieval.md",
+        "section": "序列分类与开放集拒识",
+        "sourceHash": "4292b96f8e3a7e9d05bce7f4c81535aed28517204cc6d034d62248f733242246",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 1.964058,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      },
+      {
+        "id": "KB-7de8fb605796915e",
+        "title": "引用与人工复核",
+        "content": "调查建议 INVESTIGATE 应引用当前会话的证据 ID，并核对证据强度和会话归属。知识文档只提供解释背景，不证明当前会话具备文档描述的行为。证据不足时保留 UNKNOWN，并列出需要人工核实的资产、业务用途和历史连接。",
+        "source": "review-boundaries.md",
+        "section": "引用与人工复核",
+        "sourceHash": "16bee6bcf3f9963a6972560b000bfbb7611e34266dc6c23624acd0b7a771f734",
+        "version": "public-knowledge-v1",
+        "sourceType": "SELF_AUTHORED_DEMO",
+        "score": 0.993272,
+        "retrievalChannels": [
+          "BM25"
+        ]
+      }
+    ]
+  },
+  {
+    "query": "xyzunmatched987",
+    "items": []
+  },
+  {
+    "query": "",
+    "items": []
+  },
+  {
+    "query": "!!!",
+    "items": []
+  }
+]

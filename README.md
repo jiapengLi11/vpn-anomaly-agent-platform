@@ -23,6 +23,18 @@
 
 完整设计见 [architecture.md](docs/architecture.md)，前端重构过程见
 [frontend-design-notes.md](docs/frontend-design-notes.md)。
+已完成与待完成能力见 [实现状态](docs/implementation-status.md)。
+
+## Search the knowledge base
+
+[在线知识检索](https://jiapengli11.github.io/vpn-anomaly-agent-platform/#/knowledge) 已可直接使用。
+查询 `UDP 会话特征`、`开放集拒识` 或 `LONG_SESSION`，可查看文档片段、来源、版本和原文 SHA-256。
+3 篇自编 Markdown 切成 6 个片段，BM25 在浏览器本地执行；Python API 和 Agent 使用同一语料与评分公式。
+Agent 按候选规则代码生成查询，不再返回固定知识片段。未匹配的查询返回空结果。
+
+![知识检索](docs/assets/knowledge-search.png)
+
+这是可运行的词法检索；向量召回、RRF 和 reranker 尚未接入公开版。
 
 ## Architecture
 
@@ -55,9 +67,12 @@ Linux/macOS 使用 `PYTHONPATH=backend`。
 
 启动 API：
 
-```bash
-uvicorn traffic_agent.api:app --app-dir backend --reload --port 8090
+```powershell
+& .\.venv\Scripts\python.exe -m uvicorn traffic_agent.api:app --app-dir backend --reload --port 8090
 ```
+
+API 文档位于 `http://127.0.0.1:8090/docs`，可调用 `GET /api/knowledge/search?q=UDP`。
+公开前端默认使用静态数据和浏览器检索；连接设置中的完整任务接口需要完整平台后端，不能仅用此 Agent API 替代。
 
 启动默认为合成数据只读模式的前端：
 
@@ -71,10 +86,10 @@ npm run dev
 
 ## Verification
 
-- 10 个 Agent/API 测试覆盖脱敏、候选上限、稳定化名、无候选短路、工具降级、引用校验和越权拒绝。
+- 14 个 Python 测试覆盖 Agent/API 与文档检索；9 个 Node 测试验证浏览器/Python 检索排序、分数与空结果一致。
 - Vue production build 已验证，`npm audit` 为 0 个已知漏洞。
 - Playwright CLI 已验证 1440px 与 390px 关键页面，浏览器控制台 0 错误。
-- CI 在 Python 3.12 重建合成数据，并执行后端测试和前端构建。
+- CI 在 Python 3.12 重建合成数据，并执行后端测试、前端构建和跨语言检索一致性测试。
 
 ## Repository scope
 
@@ -85,7 +100,7 @@ npm run dev
 
 - 自由文本目前只标记 `UNVERIFIED_NARRATIVE`，尚未做逐句语义蕴含验证。
 - 合成演示使用确定性 analyst；接入外部 LLM 时仍需独立做 Prompt/模型评测。
-- Element Plus 已按需加载，当前最大 JS 块约 198 KB；仍可继续做路由级预加载与性能度量。
+- Element Plus 已按需加载，当前最大 JS 块约 200 KB；仍可继续做路由级预加载与性能度量。
 - 图数据库、向量检索和训练分类器属于可插拔集成点，不在公开演示的运行依赖中。
 
 ## License
