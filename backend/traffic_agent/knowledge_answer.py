@@ -36,6 +36,11 @@ def answer(question, history, provider):
         return {**base, "status": result["status"], "paragraphs": [],
                 "message": "请在本地后端配置 DS_API_KEY（也兼容 DEEPSEEK_API_KEY）。" if result["status"] == "SKIPPED" else "模型回答失败，请稍后重试。",
                 "errorType": result.get("errorType")}
+    return validate_answer(base, result)
+
+
+def validate_answer(base, result):
+    sources = base["sources"]
     allowed = {h["id"] for h in sources}
     if any(ref not in allowed for p in result["paragraphs"] for ref in p["sourceIds"]):
         return {**base, "status": "INVALID_CITATIONS", "paragraphs": [], "message": "回答包含无法核对的引用，已停止展示。请重试。"}

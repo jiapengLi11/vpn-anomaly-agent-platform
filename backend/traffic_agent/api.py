@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Literal
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+import json
 from pydantic import BaseModel, Field
 
 from .demo import build_demo_workflow, demo_candidate
@@ -12,6 +14,7 @@ from .deepseek import analyze, configuration
 from .agent.workflow import AgentWorkflow
 from .knowledge import retrieve_context
 from .knowledge_answer import answer
+from .knowledge_stream import stream_answer, bounded_history
 
 
 class ReviewRequest(BaseModel):
@@ -41,7 +44,16 @@ class QuestionRequest(BaseModel):
 
 @app.post("/api/knowledge/answer")
 def knowledge_answer(request: QuestionRequest):
-    return answer(request.question, [item.model_dump() for item in request.history], request.provider)
+    return answer(request.question, bounded_history([item.model_dump() for item in request.history]), request.provider)
+
+
+@app.post("/api/knowledge/answer/stream")
+async def knowledge_answer_stream(request: QuestionRequest):
+    async def events():
+        async for item in stream_answer(request.question, [h.model_dump() for h in request.history], request.provider):
+            yield f"event: {item['event']}\ndata: {json.dumps(item['data'], ensure_ascii=False)}\n\n"
+    return StreamingResponse(events(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"})
 
 
 @app.get("/api/knowledge/search")

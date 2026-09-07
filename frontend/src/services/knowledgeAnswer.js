@@ -1,16 +1,17 @@
 import { searchPublicKnowledge } from './knowledge';
+import { consumeSSE } from './sse';
 
 export const localModelAvailable = ['127.0.0.1', 'localhost'].includes(location.hostname);
 
-export async function askKnowledge(question, history, provider, signal) {
+export async function askKnowledge(question, history, provider, signal, onEvent) {
   if (provider === 'deepseek') {
     if (!localModelAvailable) throw new Error('DeepSeek 问答需要在本机运行前端与后端。');
-    const response = await fetch('http://127.0.0.1:8090/api/knowledge/answer', {
+    const response = await fetch('http://127.0.0.1:8090/api/knowledge/answer/stream', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({question, history, provider}), signal,
     });
     if (!response.ok) throw new Error(`问答服务请求失败（${response.status}）。`);
-    return response.json();
+    return consumeSSE(response, onEvent);
   }
   const previous = history.filter(h => h.role === 'user');
   const query = question.length < 16 && previous.length ? previous.at(-1).content + ' ' + question : question;

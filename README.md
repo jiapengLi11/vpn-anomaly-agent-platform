@@ -92,7 +92,7 @@ npm run dev
 
 ## Verification
 
-- 22 个 Python 测试覆盖 Agent/API、检索与问答异常/引用校验；9 个 Node 测试验证浏览器/Python 检索排序、分数与空结果一致。
+- 29 个 Python 测试覆盖 Agent/API、检索、流式取消与引用校验；14 个 Node 测试覆盖检索一致性、SSE 分帧与会话记忆。
 - Vue production build 已验证，`npm audit` 为 0 个已知漏洞。
 - Playwright CLI 已验证 1440px 与 390px 关键页面，浏览器控制台 0 错误。
 - CI 在 Python 3.12 重建合成数据，并执行后端测试、前端构建和跨语言检索一致性测试。
