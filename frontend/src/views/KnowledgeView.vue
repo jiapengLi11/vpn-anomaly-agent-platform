@@ -23,6 +23,7 @@
               <p v-if="turn.error" class="qa-error" role="alert">{{ turn.error }}</p>
               <template v-if="turn.answer">
                 <small class="answer-notice">{{ turn.answer.message }}</small>
+                <details v-if="turn.answer.queryContext" class="answer-meta"><summary>追问理解与检索词</summary><p>{{ turn.answer.queryContext.strategy === 'FOLLOWUP_ANCHORED' ? '沿用当前会话最近的明确主题' : turn.answer.queryContext.strategy === 'NEEDS_CONTEXT' ? '缺少明确主题，需要补充' : '按本次独立问题检索' }}</p><p>{{ turn.answer.queryContext.query }}</p><small>规则策略，不是模型语义改写；历史回答不作为资料来源。</small></details>
                 <div v-for="(paragraph,p) in turn.answer.paragraphs" :key="p" class="answer-paragraph"><p>{{ paragraph.text }}</p><button v-for="id in paragraph.sourceIds" :key="id" class="citation" @click="showSource(index,id)">[{{ sourceNumber(turn,id) }}] 查看来源</button></div>
                 <div v-if="turn.answer.followUps?.length" class="follow-ups"><span>继续了解</span><button v-for="q in turn.answer.followUps" :key="q" :disabled="busy" @click="question=q">{{ q }}</button></div>
                 <details v-if="turn.answer.model" class="answer-meta"><summary>本次回答信息</summary><p>{{ turn.answer.model }} · {{ turn.answer.elapsedMs }} ms · {{ turn.answer.usage?.total_tokens ?? '未提供' }} tokens</p><p v-if="turn.answer.firstDraftMs != null">首段可见草稿：{{ turn.answer.firstDraftMs }} ms</p><p>引用 ID 已核对；不代表逐句事实校验完成。</p></details>

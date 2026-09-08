@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from .deepseek import complete
 from .knowledge import search
+from .query_context import resolve_query
 
 
 class Paragraph(BaseModel):
@@ -18,10 +19,13 @@ class Answer(BaseModel):
 
 
 def answer(question, history, provider):
-    previous = [h["content"] for h in history if h["role"] == "user"]
-    query = question if len(question) >= 16 or not previous else previous[-1] + " " + question
+    context = resolve_query(question, history)
+    if context['strategy'] == 'NEEDS_CONTEXT':
+        return {'status': 'NEEDS_CONTEXT', 'queryContext': context, 'provider': provider,
+                'sources': [], 'paragraphs': [], 'followUps': [], 'message': '请先说明你想继续了解的主题，例如：开放集拒识有什么局限？'}
+    query = context['query']
     sources = search(query, 4)["items"]
-    base = {"sources": sources, "query": query, "provider": provider,
+    base = {"sources": sources, "query": query, "queryContext": context, "provider": provider,
             "citationValidation": "REFERENCE_IDS_ONLY", "followUps": []}
     if not sources:
         return {**base, "status": "NO_SOURCES", "paragraphs": [],

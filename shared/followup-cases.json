@@ -1,0 +1,14 @@
+[
+  {"name":"standalone","question":"开放集拒识是什么意思？","history":[],"query":"开放集拒识是什么意思？","strategy":"STANDALONE"},
+  {"name":"one followup","question":"为什么呢？","history":[{"role":"user","content":"开放集拒识"}],"query":"开放集拒识 为什么呢？","strategy":"FOLLOWUP_ANCHORED"},
+  {"name":"two followups","question":"举个例子","history":[{"role":"user","content":"开放集拒识"},{"role":"assistant","content":"历史解释不是检索证据"},{"role":"user","content":"为什么呢"}],"query":"开放集拒识 举个例子","strategy":"FOLLOWUP_ANCHORED"},
+  {"name":"three followups","question":"那么有什么局限？","history":[{"role":"user","content":"开放集拒识"},{"role":"user","content":"为什么呢"},{"role":"user","content":"举个例子"}],"query":"开放集拒识 那么有什么局限？","strategy":"FOLLOWUP_ANCHORED"},
+  {"name":"short topic switch","question":"UDP","history":[{"role":"user","content":"开放集拒识"}],"query":"UDP","strategy":"STANDALONE"},
+  {"name":"latest topic","question":"它是什么意思","history":[{"role":"user","content":"开放集拒识"},{"role":"user","content":"UDP"}],"query":"UDP 它是什么意思","strategy":"FOLLOWUP_ANCHORED"},
+  {"name":"no context","question":"举个例子","history":[],"query":"举个例子","strategy":"NEEDS_CONTEXT"},
+  {"name":"assistant not anchor","question":"为什么","history":[{"role":"assistant","content":"UDP"}],"query":"为什么","strategy":"NEEDS_CONTEXT"},
+  {"name":"only generic questions","question":"详细说说","history":[{"role":"user","content":"为什么"},{"role":"user","content":"举个例子"}],"query":"详细说说","strategy":"NEEDS_CONTEXT"},
+  {"name":"standalone despite why prefix","question":"为什么UDP可能误报？","history":[{"role":"user","content":"开放集拒识"}],"query":"为什么UDP可能误报？","strategy":"STANDALONE"},
+  {"name":"punctuation","question":"那，怎么验证？","history":[{"role":"user","content":"LONG_SESSION"}],"query":"LONG_SESSION 那，怎么验证？","strategy":"FOLLOWUP_ANCHORED"},
+  {"name":"unknown new topic","question":"xyzunmatched987","history":[{"role":"user","content":"开放集拒识"}],"query":"xyzunmatched987","strategy":"STANDALONE"}
+]

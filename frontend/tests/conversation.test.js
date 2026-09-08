@@ -2,6 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { consumeSSE } from '../src/services/sse.js';
 import { cleanSessions, buildHistory, loadMemory, saveMemory, MEMORY_KEY } from '../src/services/conversationMemory.js';
+import { resolveQuery } from '../src/services/queryContext.js';
+import cases from '../../shared/followup-cases.json' with { type: 'json' };
+
+test('shared follow-up policy: continuation, topic switch, no context and history isolation', () => {
+  for(const c of cases) {
+    const result=resolveQuery(c.question,c.history);
+    assert.equal(result.query,c.query,c.name);
+    assert.equal(result.strategy,c.strategy,c.name);
+  }
+  const history=[{role:'user',content:'UDP'},...Array(8).fill({role:'user',content:'为什么'})];
+  assert.equal(resolveQuery('举个例子',history).strategy,'NEEDS_CONTEXT');
+});
 
 const turn = { id: '1', question: 'question', answer: { status: 'SUCCESS', paragraphs: [{ text: 'answer', sourceIds: [] }], sources: [] } };
 test('memory expires, bounds records and excludes incomplete answers', () => {

@@ -11,6 +11,7 @@ from pydantic_core import from_json
 from .deepseek import configuration
 from .knowledge import search
 from .knowledge_answer import Answer, answer, validate_answer
+from .query_context import resolve_query
 
 
 def bounded_history(history, budget=8000):
@@ -38,13 +39,13 @@ async def stream_answer(question, history, provider):
     history = bounded_history(history)
     yield {'event': 'status', 'data': {'stage': 'retrieving', 'historyMessages': len(history),
                                       'historyCharacters': sum(len(h['content']) for h in history)}}
-    if provider == 'demo':
+    context = resolve_query(question, history)
+    if provider == 'demo' or context['strategy'] == 'NEEDS_CONTEXT':
         yield {'event': 'done', 'data': answer(question, history, provider)}
         return
-    previous = [h['content'] for h in history if h['role'] == 'user']
-    query = question if len(question) >= 16 or not previous else previous[-1] + ' ' + question
+    query = context['query']
     sources = search(query, 4)['items']
-    base = {'sources': sources, 'query': query, 'provider': provider,
+    base = {'sources': sources, 'query': query, 'queryContext': context, 'provider': provider,
             'citationValidation': 'REFERENCE_IDS_ONLY', 'followUps': []}
     yield {'event': 'sources', 'data': sources}
     config = configuration()
