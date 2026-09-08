@@ -10,17 +10,38 @@ TOOL_CATALOG = {
         'version': '1.0', 'kind': 'RETRIEVAL', 'external': False,
         'purpose': 'Retrieve compact background knowledge from admitted evidence codes.',
         'requires': [], 'maxCalls': 1,
+        'inputSchema': {
+            'type': 'object',
+            'properties': {
+                'query': {'type': 'string', 'minLength': 1, 'maxLength': 500},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 20},
+            },
+            'required': ['query'], 'additionalProperties': False,
+        },
     },
     'analyst.review': {
         'version': '1.0', 'kind': 'MODEL', 'external': True,
         'purpose': 'Generate a review brief from admitted evidence and retrieved knowledge.',
         'requires': ['knowledge.search'], 'maxCalls': 1,
+        'inputSchema': {
+            'type': 'object',
+            'properties': {
+                'taskId': {'type': 'string', 'maxLength': 100},
+                'candidates': {'type': 'array', 'maxItems': 20},
+                'featureEvidence': {'type': 'object'},
+                'modelEvidence': {'type': 'object'},
+                'requestedTools': {'type': 'array', 'maxItems': 8},
+                'requestId': {'type': 'string', 'minLength': 8, 'maxLength': 80},
+            },
+            'required': ['candidates'], 'additionalProperties': False,
+        },
     },
 }
 
 
 def public_catalog():
     return {'routerVersion': ROUTER_VERSION,
+            'transport': 'mcp-bridge',
             'tools': [{'name': name, **TOOL_CATALOG[name]} for name in TOOL_ORDER]}
 
 

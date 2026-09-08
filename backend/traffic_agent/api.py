@@ -18,6 +18,7 @@ from .knowledge_answer import answer
 from .knowledge_stream import stream_answer, bounded_history
 from .agent.tool_router import public_catalog
 from .billing import BillingDenied, billing
+from .mcp_bridge import McpBridgeError, dispatch
 
 DEMO_USER_ID = 'demo-user'
 
@@ -53,6 +54,13 @@ class QuestionRequest(BaseModel):
 class PaymentOrderRequest(BaseModel):
     channel: Literal['WECHAT', 'ALIPAY']
     amountFen: Literal[1000, 3000, 10000]
+
+
+class McpRpcRequest(BaseModel):
+    jsonrpc: Literal['2.0'] = '2.0'
+    id: str | int | None = None
+    method: str = Field(min_length=1, max_length=100)
+    params: Dict[str, Any] = Field(default_factory=dict)
 
 
 def authorize_or_402(request_id, operation):
@@ -126,6 +134,33 @@ def health():
 @app.get('/api/tools')
 def tools_catalog():
     return public_catalog()
+
+
+@app.post('/api/mcp')
+def mcp_rpc(request: McpRpcRequest):
+    authorization = None
+    if request.method == 'tools/call' and request.params.get('name') == 'analyst.review':
+        arguments = request.params.get('arguments') or {}
+        request_id = arguments.get('requestId') or f'mcp-{request.id or uuid.uuid4()}'
+        authorization = authorize_or_402(request_id, 'ANALYSIS')
+    try:
+        result = dispatch(request.method, request.params)
+        if authorization is not None:
+            content = result.get('structuredContent') or {}
+            content['billing'] = billing.settle(authorization, *token_counts(content.get('analysis') or {}))
+            result['structuredContent'] = content
+            result['content'][0]['text'] = json.dumps(result['structuredContent'], ensure_ascii=False)
+        return {'jsonrpc': '2.0', 'id': request.id, 'result': result}
+    except McpBridgeError as exc:
+        billing.release(authorization)
+        response = {'jsonrpc': '2.0', 'id': request.id,
+                    'error': {'code': exc.code, 'message': str(exc)}}
+        if exc.data is not None:
+            response['error']['data'] = exc.data
+        return response
+    except Exception:
+        billing.release(authorization)
+        raise
 
 
 @app.get('/api/billing/summary')

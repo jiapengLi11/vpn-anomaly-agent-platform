@@ -28,6 +28,9 @@
 [Tool Router 与分层评测](docs/tool-routing-and-evaluation.md)说明路由策略、评测边界及后续层次。
 [回答质量开发基线](docs/answer-quality-evaluation.md)展示可复现的摘录模式实测、自动合同和人工复核边界。
 
+工具调用还提供一个受 Tool Router 约束的本地 MCP Bridge：`POST /api/mcp` 支持 `tools/list` 和 `tools/call`，
+工具定义带 JSON Schema，未知工具和非法参数在执行前拒绝，分析调用继续经过 AgentWorkflow 和计费门禁。
+
 ## Usage and sandbox billing
 
 公开演示还包含一个小型用量中心：新用户有 5 次分析和 5 次知识问答免费额度，成功请求按 requestId 幂等记录 token 与费用，失败或取消会释放预授权。页面支持微信/支付宝沙箱订单、模拟支付回调、余额、近 7 日 token 统计和流水查看；不会拉起真实支付，也不会产生真实资金交易。
@@ -107,7 +110,7 @@ npm run dev
 
 ## Verification and evaluation
 
-- 42 个 Python 测试覆盖 Agent/API、Tool Router、检索、回答评测、流式取消与引用校验；16 个 Node 测试覆盖检索一致性、评测产物、SSE 分帧、会话记忆与追问策略。
+- 51 个 Python 测试覆盖 Agent/API、MCP Bridge、Tool Router、检索、回答评测、流式取消与引用校验；19 个 Node 测试覆盖检索一致性、评测产物、SSE 分帧、会话记忆、追问策略与计费账本。
 - Vue production build 已验证，`npm audit` 为 0 个已知漏洞。
 - Playwright CLI 已验证 1440px 与 390px 关键页面，浏览器控制台 0 错误。
 - CI 重建合成数据，执行测试、评测门槛和前端构建，并检查生成报告未漂移。
