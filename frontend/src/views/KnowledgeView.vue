@@ -3,7 +3,7 @@
     <div class="page-heading"><div><h1>知识问答</h1><p>了解流量特征、模型原理与研判方法，回答附带可查看的资料来源。</p></div><el-button :disabled="busy || !turns.length" @click="reset">新对话</el-button></div>
     <div class="qa-layout">
       <div class="panel conversation-panel">
-        <div class="qa-mode"><span>{{ provider === 'deepseek' ? 'DeepSeek 知识问答' : '公开资料体验' }}</span><label><input v-model="provider" type="checkbox" true-value="deepseek" false-value="demo" :disabled="!localModelAvailable || busy" />使用本地 DeepSeek</label></div>
+        <div class="qa-mode"><span>{{ provider === 'deepseek' ? 'DeepSeek 知识问答' : '公开资料体验' }}<router-link to="/billing">免费问答 {{ knowledgeRemaining }} / 5</router-link></span><label><input v-model="provider" type="checkbox" true-value="deepseek" false-value="demo" :disabled="!localModelAvailable || busy" />使用本地 DeepSeek</label></div>
         <div class="memory-toolbar">
           <label><input v-model="remember" type="checkbox" :disabled="busy" @change="toggleMemory" />在本机保留会话 7 天</label>
           <select aria-label="历史会话" :value="sessionId" :disabled="busy" @change="switchSession($event.target.value)"><option :value="sessionId" v-if="!sessions.some(s=>s.id===sessionId)">当前新会话</option><option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.turns[0]?.question?.slice(0,28) || '新会话' }}</option></select>
@@ -62,6 +62,7 @@ import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { askKnowledge, localModelAvailable } from '../services/knowledgeAnswer';
 import { loadMemory, saveMemory, cleanSessions, buildHistory, MEMORY_KEY } from '../services/conversationMemory';
 import { loadAnswerEvaluation, loadKnowledgeEvaluation } from '../services/knowledgeEvaluation';
+import { billingLedger } from '../services/billingLedger';
 const topics = [
   {label:'流量特征', question:'长会话和双向均衡能说明什么？'},
   {label:'模型原理', question:'开放集拒识是什么意思？'},
@@ -75,6 +76,7 @@ const remember=ref(saved.enabled), sessions=ref(saved.sessions), memoryError=ref
 const sessionId=ref(saved.sessions[0]?.id || crypto.randomUUID());
 const question=ref(''), turns=ref(saved.sessions[0]?.turns || []), provider=ref('demo'), busy=ref(false), activeTurn=ref(turns.value.length-1), activeId=ref(''), sourcePanel=ref(null);
 const evaluation=ref(null), answerEvaluation=ref(null);
+const knowledgeRemaining=ref(billingLedger.summary().freeRemaining.KNOWLEDGE_QA);
 const activeSources=computed(() => turns.value[activeTurn.value]?.answer?.sources || turns.value[activeTurn.value]?.sources || []);
 let controller, stopped=false;
 function persist() {
@@ -105,23 +107,25 @@ async function submit() {
   const history=buildHistory(turns.value);
   const turn={id:crypto.randomUUID(),question:text,provider:provider.value,answer:null,error:'',draft:'',stage:'retrieving',sources:[]}; turns.value.push(turn);
   stopped=false; activeTurn.value=turns.value.length-1;
-  const current=turns.value.at(-1); controller=new AbortController();
+  const current=turns.value.at(-1), requestId=crypto.randomUUID(); let localAuthorization=null; controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),75000);
-  try { current.answer=await askKnowledge(text,history,provider.value,controller.signal,(event,data)=>{
+  try { if(provider.value==='demo') localAuthorization=billingLedger.authorize('KNOWLEDGE_QA',requestId);
+    current.answer=await askKnowledge(text,history,provider.value,controller.signal,(event,data)=>{
     if(event==='draft') current.draft=data.text;
     if(event==='status') current.stage=data.stage;
     if(event==='sources') current.sources=data;
-  }); activeId.value=''; }
-  catch(e) { current.error=stopped ? '已停止生成，未完成草稿不会写入记忆。' : e.name==='AbortError' ? '回答超时，请稍后重试。' : '生成失败或连接中断，未完成草稿已撤回。请检查本地服务后重试。'; question.value=text; }
-  finally { current.draft=''; clearTimeout(timer); busy.value=false; persist(); }
+  },requestId); if(localAuthorization && ['SUCCESS','EXTRACTIVE','NO_SOURCES','INSUFFICIENT'].includes(current.answer.status)) billingLedger.settle(localAuthorization); else if(localAuthorization) billingLedger.release(localAuthorization); activeId.value=''; }
+  catch(e) { billingLedger.release(localAuthorization); current.error=stopped ? '已停止生成，未完成草稿不会写入记忆。' : e.name==='AbortError' ? '回答超时，请稍后重试。' : e.message || '生成失败或连接中断，未完成草稿已撤回。'; question.value=text; }
+  finally { knowledgeRemaining.value=billingLedger.summary().freeRemaining.KNOWLEDGE_QA; current.draft=''; clearTimeout(timer); busy.value=false; persist(); }
 }
-onMounted(async()=>{ const [retrieval,answers]=await Promise.allSettled([loadKnowledgeEvaluation(),loadAnswerEvaluation()]); evaluation.value=retrieval.status==='fulfilled' ? retrieval.value : null; answerEvaluation.value=answers.status==='fulfilled' ? answers.value : null; });
-onUnmounted(()=>controller?.abort());
+function refreshQuota(){knowledgeRemaining.value=billingLedger.summary().freeRemaining.KNOWLEDGE_QA}
+onMounted(async()=>{ window.addEventListener('billing-updated',refreshQuota); const [retrieval,answers]=await Promise.allSettled([loadKnowledgeEvaluation(),loadAnswerEvaluation()]); evaluation.value=retrieval.status==='fulfilled' ? retrieval.value : null; answerEvaluation.value=answers.status==='fulfilled' ? answers.value : null; });
+onUnmounted(()=>{controller?.abort();window.removeEventListener('billing-updated',refreshQuota)});
 </script>
 <style scoped>
 .qa-layout {display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start;}
 .memory-toolbar {display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 24px;border-bottom:1px solid #dae5df;font-size:12px;color:#425b67;}.memory-toolbar select {max-width:100%;min-width:0;padding:6px;border:1px solid #cbdcda;background:white;}.memory-toolbar small {flex-basis:100%;}.memory-toolbar button {background:none;border:0;color:#276c74;cursor:pointer;}.stream-draft {white-space:pre-wrap;overflow-wrap:anywhere;border-left:2px solid #5ba836;padding-left:14px;}
-.conversation-panel {overflow:hidden;}.qa-mode {display:flex;justify-content:space-between;gap:12px;padding:18px 24px;background:#f0f5f2;border-bottom:1px solid #dae5df;font-size:13px;color:#3c5651;}.qa-mode label {display:flex;align-items:center;gap:7px;font-size:12px;}
+.conversation-panel {overflow:hidden;}.qa-mode {display:flex;justify-content:space-between;gap:12px;padding:18px 24px;background:#f0f5f2;border-bottom:1px solid #dae5df;font-size:13px;color:#3c5651;}.qa-mode>span a{margin-left:12px;padding-left:12px;border-left:1px solid #cbdad5;color:#247b80;font-size:10px}.qa-mode label {display:flex;align-items:center;gap:7px;font-size:12px;}
 .qa-welcome {padding:38px 30px;}h2 {font-size:21px;margin:0 0 12px;}p {line-height:1.8;color:#425b67;font-size:14px;}small {display:block;line-height:1.7;color:#617782;font-size:12px;}
 .topic-list {display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:28px;}.topic-list button {text-align:left;padding:18px;border:1px solid #dce6e4;background:#fafcfb;border-radius:4px;cursor:pointer;}.topic-list span {display:block;font-size:12px;color:#217d86;margin-bottom:8px;}.topic-list strong {font-size:14px;font-weight:500;color:#28444e;line-height:1.6;}.topic-list button:hover {border-color:#5ba836;}
 .qa-turns {padding:0 26px;}.qa-turn {padding:24px 0;border-bottom:1px solid #e0e8e8;}.user-question {background:#edf4ef;padding:14px 18px;border-radius:4px;margin-bottom:22px;}.user-question span,.answer-label {font-size:12px;color:#48685e;font-weight:600;}.user-question p {margin:6px 0 0;color:#233f35;white-space:pre-wrap;overflow-wrap:anywhere;}

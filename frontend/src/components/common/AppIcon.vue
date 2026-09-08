@@ -14,6 +14,7 @@ const icons = {
   chevron: 'M9 5l7 7-7 7', close: 'M6 6l12 12 M6 18L18 6',
   shield: 'M12 2l9 4v6c0 5-9 10-9 10S3 17 3 12V6z M8 12l3 3 5-6',
   clock: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M12 7v5l3 2',
+  wallet: 'M3 6h16v14H3z M3 9h16 M16 13h5v4h-5z M6 6V4h11v2',
   check: 'M5 12l4 4L19 6', download: 'M12 3v12 M7 10l5 5 5-5 M4 17v4h16v-4',
   activity: 'M2 12h5l3-8 4 16 3-8h5', menu: 'M4 6h16 M4 12h16 M4 18h16'
 };

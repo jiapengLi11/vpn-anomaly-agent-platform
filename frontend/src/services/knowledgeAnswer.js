@@ -4,14 +4,14 @@ import { resolveQuery } from './queryContext';
 
 export const localModelAvailable = ['127.0.0.1', 'localhost'].includes(location.hostname);
 
-export async function askKnowledge(question, history, provider, signal, onEvent) {
+export async function askKnowledge(question, history, provider, signal, onEvent, requestId=crypto.randomUUID()) {
   if (provider === 'deepseek') {
     if (!localModelAvailable) throw new Error('DeepSeek 问答需要在本机运行前端与后端。');
     const response = await fetch('http://127.0.0.1:8090/api/knowledge/answer/stream', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({question, history, provider}), signal,
+      body:JSON.stringify({requestId, question, history, provider}), signal,
     });
-    if (!response.ok) throw new Error(`问答服务请求失败（${response.status}）。`);
+    if (!response.ok) { const body=await response.json().catch(()=>null); throw new Error(body?.detail?.message || `问答服务请求失败（${response.status}）。`); }
     return consumeSSE(response, onEvent);
   }
   const context=resolveQuery(question, history), query=context.query;

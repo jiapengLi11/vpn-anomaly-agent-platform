@@ -28,6 +28,12 @@
 [Tool Router 与分层评测](docs/tool-routing-and-evaluation.md)说明路由策略、评测边界及后续层次。
 [回答质量开发基线](docs/answer-quality-evaluation.md)展示可复现的摘录模式实测、自动合同和人工复核边界。
 
+## Usage and sandbox billing
+
+公开演示还包含一个小型用量中心：新用户有 5 次分析和 5 次知识问答免费额度，成功请求按 requestId 幂等记录 token 与费用，失败或取消会释放预授权。页面支持微信/支付宝沙箱订单、模拟支付回调、余额、近 7 日 token 统计和流水查看；不会拉起真实支付，也不会产生真实资金交易。
+
+实现细节和生产边界见 [用量与沙箱计费](docs/billing-and-usage.md)。真实支付仍需要商户证书、回调验签、退款、对账和统一身份认证，不能把本演示当作商业支付系统。
+
 ## Search the knowledge base
 
 知识模块支持连续提问、真实 SSE、停止生成、可选本机会话记忆、引用跳转与本地 DeepSeek 回答。

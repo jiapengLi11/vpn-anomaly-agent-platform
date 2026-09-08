@@ -24,12 +24,12 @@
         <div class="breadcrumb"><button class="icon-button mobile-menu" aria-label="打开导航" @click="navOpen = true"><AppIcon name="menu" /></button>
           <span>工作区</span><AppIcon name="chevron" /><strong>{{ pageTitle }}</strong></div>
         <div class="topbar-actions">
-          <span class="connection-status" :class="{ demo: store.demoMode }"><i />{{ route.path === '/knowledge' ? '资料与问答' : store.demoMode ? '离线演示 · 只读' : store.backendHealth?.status === 'UP' ? '后端已连接' : '等待服务连接' }}</span>
+          <span class="connection-status" :class="{ demo: store.demoMode }"><i />{{ route.path === '/knowledge' ? '资料与问答' : route.path === '/billing' ? '沙箱计费账户' : store.demoMode ? '离线演示 · 只读' : store.backendHealth?.status === 'UP' ? '后端已连接' : '等待服务连接' }}</span>
           <button class="icon-button" aria-label="连接设置" @click="store.settingsOpen = true"><AppIcon name="settings" /></button>
           <span class="topbar-divider" /><span class="avatar small">L</span>
         </div>
       </header>
-      <div v-if="store.demoMode && route.path !== '/knowledge'" class="mode-banner"><AppIcon name="file" /><span>正在展示合成流量的离线分析产物。此模式不会上传文件或调用外部模型。</span><button @click="switchMode(false)">连接服务<AppIcon name="arrow" /></button></div>
+      <div v-if="store.demoMode && !['/knowledge','/billing'].includes(route.path)" class="mode-banner"><AppIcon name="file" /><span>正在展示合成流量的离线分析产物。此模式不会上传文件或调用外部模型。</span><button @click="switchMode(false)">连接服务<AppIcon name="arrow" /></button></div>
       <div class="workspace-content">
         <div v-if="store.error" class="notice notice-warning"><AppIcon name="activity" /><span>{{ store.error }}</span><button @click="switchMode(true)">查看离线示例</button></div>
         <router-view :key="route.path + store.demoMode" />
@@ -63,7 +63,8 @@ const store = usePlatformStore(), route = useRoute(), router = useRouter();
 const navOpen = ref(false), apiDraft = ref(store.apiBase), settingsError = ref("");
 const navigation = [
   { path: "/overview", label: "工作台", icon: "grid" }, { path: "/tasks", label: "任务中心", icon: "tasks" },
-  { path: "/reports", label: "研判报告", icon: "file" }, { path: "/knowledge", label: "知识检索", icon: "book" }
+  { path: "/reports", label: "研判报告", icon: "file" }, { path: "/knowledge", label: "知识检索", icon: "book" },
+  { path: "/billing", label: "用量与计费", icon: "wallet" }
 ];
 const activeSection = computed(() => route.path.startsWith("/tasks/") ? "/tasks" : route.path);
 const pageTitle = computed(() => route.path.startsWith("/tasks/") ? "任务详情" : navigation.find(item => item.path === route.path)?.label || "工作台");
