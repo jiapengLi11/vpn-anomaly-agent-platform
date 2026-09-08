@@ -11,6 +11,8 @@ class AgentState(TypedDict, total=False):
     reportSnapshot: Dict[str, Any]
     admittedCandidates: List[Dict[str, Any]]
     admission: Dict[str, Any]
+    requestedTools: List[str]
+    toolPlan: Dict[str, Any]
     knowledgeHits: List[Dict[str, Any]]
     knowledgeStrategy: Dict[str, Any]
     knowledgeQuery: str

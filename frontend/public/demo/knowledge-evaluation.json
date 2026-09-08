@@ -1,0 +1,229 @@
+{
+  "datasetVersion": "knowledge-retrieval-dev-v1",
+  "corpusVersion": "public-knowledge-v1",
+  "scope": "SELF_AUTHORED_DEVELOPMENT_SET",
+  "caseCounts": {
+    "retrieval": 12,
+    "rejection": 5,
+    "conversation": 4,
+    "citationContract": 21
+  },
+  "metrics": {
+    "hitAt1": 0.9167,
+    "hitAt3": 1.0,
+    "mrr": 0.9583,
+    "outOfDomainRejection": 1.0,
+    "conversationResolution": 1.0,
+    "citationContract": 1.0
+  },
+  "gates": {
+    "hitAt1": {
+      "actual": 0.9167,
+      "minimum": 0.8,
+      "passed": true
+    },
+    "hitAt3": {
+      "actual": 1.0,
+      "minimum": 1.0,
+      "passed": true
+    },
+    "mrr": {
+      "actual": 0.9583,
+      "minimum": 0.9,
+      "passed": true
+    },
+    "outOfDomainRejection": {
+      "actual": 1.0,
+      "minimum": 1.0,
+      "passed": true
+    },
+    "conversationResolution": {
+      "actual": 1.0,
+      "minimum": 1.0,
+      "passed": true
+    },
+    "citationContract": {
+      "actual": 1.0,
+      "minimum": 1.0,
+      "passed": true
+    }
+  },
+  "passed": true,
+  "failures": [],
+  "details": {
+    "retrieval": [
+      {
+        "id": "R01",
+        "rank": 1,
+        "topSections": [
+          "UDP 会话与双向流量",
+          "调查候选不是恶意结论",
+          "引用与人工复核"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R02",
+        "rank": 1,
+        "topSections": [
+          "调查候选不是恶意结论",
+          "UDP 会话与双向流量",
+          "长会话与周期性"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R03",
+        "rank": 1,
+        "topSections": [
+          "长会话与周期性",
+          "引用与人工复核"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R04",
+        "rank": 1,
+        "topSections": [
+          "长会话与周期性",
+          "引用与人工复核",
+          "调查候选不是恶意结论"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R05",
+        "rank": 1,
+        "topSections": [
+          "序列分类与开放集拒识",
+          "调查候选不是恶意结论"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R06",
+        "rank": 1,
+        "topSections": [
+          "序列分类与开放集拒识",
+          "调查候选不是恶意结论",
+          "UDP 会话与双向流量"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R07",
+        "rank": 1,
+        "topSections": [
+          "知识检索和空结果",
+          "序列分类与开放集拒识"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R08",
+        "rank": 1,
+        "topSections": [
+          "知识检索和空结果"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R09",
+        "rank": 2,
+        "topSections": [
+          "UDP 会话与双向流量",
+          "调查候选不是恶意结论",
+          "序列分类与开放集拒识"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R10",
+        "rank": 1,
+        "topSections": [
+          "调查候选不是恶意结论",
+          "序列分类与开放集拒识",
+          "引用与人工复核"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R11",
+        "rank": 1,
+        "topSections": [
+          "引用与人工复核",
+          "调查候选不是恶意结论",
+          "知识检索和空结果"
+        ],
+        "passedAt3": true
+      },
+      {
+        "id": "R12",
+        "rank": 1,
+        "topSections": [
+          "引用与人工复核",
+          "序列分类与开放集拒识",
+          "长会话与周期性"
+        ],
+        "passedAt3": true
+      }
+    ],
+    "rejection": [
+      {
+        "id": "O01",
+        "passed": true,
+        "unexpectedSections": []
+      },
+      {
+        "id": "O02",
+        "passed": true,
+        "unexpectedSections": []
+      },
+      {
+        "id": "O03",
+        "passed": true,
+        "unexpectedSections": []
+      },
+      {
+        "id": "O04",
+        "passed": true,
+        "unexpectedSections": []
+      },
+      {
+        "id": "O05",
+        "passed": true,
+        "unexpectedSections": []
+      }
+    ],
+    "conversations": [
+      {
+        "id": "C01",
+        "strategy": "FOLLOWUP_ANCHORED",
+        "query": "开放集拒识 举个例子",
+        "rank": 1,
+        "passed": true
+      },
+      {
+        "id": "C02",
+        "strategy": "FOLLOWUP_ANCHORED",
+        "query": "UDP 会话特征 那有什么局限？",
+        "rank": 1,
+        "passed": true
+      },
+      {
+        "id": "C03",
+        "strategy": "STANDALONE",
+        "query": "UDP",
+        "rank": 1,
+        "passed": true
+      },
+      {
+        "id": "C04",
+        "strategy": "NEEDS_CONTEXT",
+        "query": "举个例子",
+        "rank": null,
+        "passed": true
+      }
+    ]
+  }
+}

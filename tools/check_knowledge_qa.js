@@ -1,5 +1,8 @@
 async page => {
   await page.setViewportSize({width:1440,height:1000});
+  await page.getByText('知识检索开发集',{exact:true}).waitFor();
+  await page.getByText('91.7%',{exact:true}).waitFor();
+  await page.getByText('自编开发集，仅用于防回归，不代表真实业务准确率。',{exact:true}).waitFor();
   await page.getByRole('button', {name:'模型原理 开放集拒识是什么意思？'}).click();
   await page.getByRole('button', {name:'提问',exact:true}).click();
   await page.getByRole('button', {name:'[1] 查看来源',exact:true}).waitFor();

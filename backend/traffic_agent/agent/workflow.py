@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Optional
 from .admission import admit_agent_context, sanitize_agent_data
 from .claim_gate import validate_agent_claims
 from .state import AgentState
+from .tool_router import route_tools
 
 try:
     from langgraph.graph import END, START, StateGraph
@@ -31,6 +32,10 @@ class _DeterministicCompiledGraph:
         current = {**state}
         current.update(self.workflow.admission_node(current))
         if not current.get("admittedCandidates"):
+            current.update(self.workflow.finalize_node(current))
+            return current
+        current.update(self.workflow.tool_router_node(current))
+        if current.get('toolPlan', {}).get('status') != 'READY':
             current.update(self.workflow.finalize_node(current))
             return current
         current.update(self.workflow.retrieval_node(current))
@@ -66,6 +71,7 @@ class AgentWorkflow:
         builder = StateGraph(AgentState)
         builder.add_node("security_admission", self.admission_node)
         builder.add_node("knowledge_retrieval", self.retrieval_node)
+        builder.add_node("tool_router", self.tool_router_node)
         builder.add_node("analyst_model", self.analysis_node)
         builder.add_node("claim_gate", self.claim_gate_node)
         builder.add_node("finalize", self.finalize_node)
@@ -73,6 +79,11 @@ class AgentWorkflow:
         builder.add_conditional_edges(
             "security_admission",
             lambda state: "continue" if state.get("admittedCandidates") else "skip",
+            {"continue": "tool_router", "skip": "finalize"},
+        )
+        builder.add_conditional_edges(
+            "tool_router",
+            lambda state: "continue" if state.get('toolPlan', {}).get('status') == 'READY' else "skip",
             {"continue": "knowledge_retrieval", "skip": "finalize"},
         )
         builder.add_edge("knowledge_retrieval", "analyst_model")
@@ -102,6 +113,19 @@ class AgentWorkflow:
                             deferred=admission["deferredCandidateCount"],
                             redacted=admission["redactedAddressCount"] + admission["redactedDomainCount"]),
         }
+
+    def tool_router_node(self, state: AgentState) -> Dict[str, Any]:
+        try:
+            plan = route_tools(self._safe_context(state), state.get('requestedTools'))
+            return {'toolPlan': plan, 'trace': _trace(
+                state, 'tool_router', plan['status'],
+                selected=len(plan['selectedTools']), rejected=len(plan['rejectedTools']),
+                routerVersion=plan['routerVersion'])}
+        except Exception as exc:
+            plan = {'routerVersion': 'tool-router-v1', 'status': 'FAILED', 'selectedTools': [],
+                    'rejectedTools': [], 'errorType': type(exc).__name__}
+            return {'toolPlan': plan, 'trace': _trace(state, 'tool_router', 'FAILED',
+                                                     errorType=type(exc).__name__)}
 
     def retrieval_node(self, state: AgentState) -> Dict[str, Any]:
         context = self._safe_context(state)
@@ -160,11 +184,9 @@ class AgentWorkflow:
 
     def finalize_node(self, state: AgentState) -> Dict[str, Any]:
         no_candidates = not state.get("admittedCandidates")
-        analysis = state.get("analysis") or {
-            "status": "SKIPPED_NO_CANDIDATES",
-            "reason": "No flow passed Candidate Gate",
-            "claims": [],
-        }
+        router_blocked = not no_candidates and state.get('toolPlan', {}).get('status') != 'READY'
+        analysis = state.get("analysis") or {"status": "SKIPPED_TOOL_ROUTER" if router_blocked else "SKIPPED_NO_CANDIDATES",
+            "reason": "Tool plan was not admitted" if router_blocked else "No flow passed Candidate Gate", "claims": []}
         audit = state.get("claimAudit") or validate_agent_claims([], [], [])
         trace = _trace(state, "finalize", "SUCCESS", securityVerdict="UNKNOWN")
         result = {
@@ -173,6 +195,7 @@ class AgentWorkflow:
             "status": "SKIPPED_NO_CANDIDATES" if no_candidates else analysis.get("status", "SUCCESS"),
             "securityVerdict": "UNKNOWN",
             "admission": state.get("admission", {}),
+            "toolPlan": state.get('toolPlan', {}),
             "knowledgeHits": state.get("knowledgeHits", []),
             "knowledgeStrategy": state.get("knowledgeStrategy", {}),
             "knowledgeQuery": state.get("knowledgeQuery", ""),

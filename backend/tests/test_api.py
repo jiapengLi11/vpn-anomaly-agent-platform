@@ -13,6 +13,13 @@ from traffic_agent.api import app  # noqa: E402
 
 
 class AgentApiTest(unittest.TestCase):
+    def test_tool_catalog_exposes_only_registered_metadata(self):
+        with TestClient(app) as client:
+            result = client.get('/api/tools')
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual([tool['name'] for tool in result.json()['tools']],
+                         ['knowledge.search', 'analyst.review'])
+
     @classmethod
     def setUpClass(cls):
         cls.client = TestClient(app)

@@ -1,0 +1,40 @@
+{
+  "version": "knowledge-retrieval-dev-v1",
+  "scope": "SELF_AUTHORED_DEVELOPMENT_SET",
+  "description": "Small hand-labelled set for regression and interview demonstration. It is not an independent benchmark.",
+  "gates": {
+    "hitAt1": 0.8,
+    "hitAt3": 1.0,
+    "mrr": 0.9,
+    "outOfDomainRejection": 1.0,
+    "conversationResolution": 1.0,
+    "citationContract": 1.0
+  },
+  "retrievalCases": [
+    {"id":"R01","question":"UDP 会话为什么不能只看端口？","expectedSections":["UDP 会话与双向流量"]},
+    {"id":"R02","question":"双向均衡是否就能说明是 VPN？","expectedSections":["调查候选不是恶意结论","UDP 会话与双向流量"]},
+    {"id":"R03","question":"长连接触发意味着什么？","expectedSections":["长会话与周期性"]},
+    {"id":"R04","question":"周期性连接还需要检查什么？","expectedSections":["长会话与周期性"]},
+    {"id":"R05","question":"模型遇到未知类别时如何处理？","expectedSections":["序列分类与开放集拒识"]},
+    {"id":"R06","question":"unknown 是不是恶意流量？","expectedSections":["序列分类与开放集拒识"]},
+    {"id":"R07","question":"BM25 能理解语义近似表达吗？","expectedSections":["知识检索和空结果"]},
+    {"id":"R08","question":"没有匹配资料时应该怎么办？","expectedSections":["知识检索和空结果"]},
+    {"id":"R09","question":"候选流能否直接封禁？","expectedSections":["调查候选不是恶意结论"]},
+    {"id":"R10","question":"事实和模型预测需要分开记录吗？","expectedSections":["调查候选不是恶意结论"]},
+    {"id":"R11","question":"调查建议应该怎样引用证据？","expectedSections":["引用与人工复核"]},
+    {"id":"R12","question":"证据不足时如何处理？","expectedSections":["引用与人工复核"]}
+  ],
+  "rejectionCases": [
+    {"id":"O01","question":"明天天气怎么样？"},
+    {"id":"O02","question":"红烧肉怎么做？"},
+    {"id":"O03","question":"股票什么时候涨？"},
+    {"id":"O04","question":"酒店怎么预订？"},
+    {"id":"O05","question":"密码怎么重置？"}
+  ],
+  "conversationCases": [
+    {"id":"C01","question":"举个例子","history":[{"role":"user","content":"开放集拒识"},{"role":"assistant","content":"解释内容"},{"role":"user","content":"为什么呢"}],"expectedStrategy":"FOLLOWUP_ANCHORED","expectedQuery":"开放集拒识 举个例子","expectedSections":["序列分类与开放集拒识"]},
+    {"id":"C02","question":"那有什么局限？","history":[{"role":"user","content":"UDP 会话特征"}],"expectedStrategy":"FOLLOWUP_ANCHORED","expectedQuery":"UDP 会话特征 那有什么局限？","expectedSections":["UDP 会话与双向流量"]},
+    {"id":"C03","question":"UDP","history":[{"role":"user","content":"开放集拒识"}],"expectedStrategy":"STANDALONE","expectedQuery":"UDP","expectedSections":["UDP 会话与双向流量"]},
+    {"id":"C04","question":"举个例子","history":[],"expectedStrategy":"NEEDS_CONTEXT","expectedQuery":"举个例子","expectedSections":[]}
+  ]
+}

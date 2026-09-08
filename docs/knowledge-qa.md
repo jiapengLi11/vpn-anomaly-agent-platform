@@ -1,98 +1,112 @@
-# 领域知识问答与 DeepSeek
+# 领域知识问答设计与实现
 
-左侧知识模块的核心交互是用户提问与追问。回答区与原文依据分开，点击引用可定位对应来源。
-当前公开版不保存会话到服务器；可以自愿开启本地浏览器会话记忆，新对话隔离当前上下文。最近 8 条有效历史消息用于解析追问，
-显式追问通过回溯最近明确主题辅助检索，独立问题切换主题。这是规则上下文策略，还不是模型查询改写。
+知识模块面向流量特征、模型边界和研判方法的提问。回答正文与来源检查器分开，引用可以定位原文；
+知识背景不会自动变成当前流量的事实或安全结论。
 
-## 两种运行方式
+## 当前链路
 
-- GitHub Pages：浏览器检索自编示例资料，显示原文摘录，明确标注没有调用大模型。
-- 本机 DeepSeek：浏览器请求本地 8090 端口，Python 检索后加载专用 Skill，再请求 DeepSeek。
+```text
+用户问题
+  → 追问主题解析
+  → BM25 检索自编资料
+  → DeepSeek SSE 生成
+  → JSON 结构校验
+  → 引用 ID 校验
+  → 正式回答 / 撤回草稿
+```
 
-先按 README 创建 Python 环境、安装依赖。在 PowerShell 的仓库目录运行：
+公开 GitHub Pages 在浏览器执行同一词法检索并显示原文摘录，不调用外部模型。本地模式由浏览器请求
+8090 端口，API Key 只存在于 Python 后端环境。
+
+## 本地运行
+
+在仓库目录启动问答 API：
 
 ```powershell
 & .\tools\start_knowledge_api.ps1
 ```
 
-已有 API Key 时直接使用，否则脚本会隐藏输入 API Key。默认模型为 `deepseek-v4-flash`，支持预先设置
-`DS_API_KEY` 与 `DS_MODEL`，也兼容 `DEEPSEEK_API_KEY` 与 `DEEPSEEK_MODEL`。两组同时配置时优先使用 DS 变量。脚本输入的环境变量仅供当前进程和子进程使用，不写入文件。
-`.env.example` 只列出变量名，程序不会自动加载 `.env`。
-另一个终端在 frontend 下执行 `npm run dev`，打开本地知识问答页，勾选“使用本地 DeepSeek”再提问。
-脚本可用 `-Python` 指定已有 Python 解释器，不必重复安装环境。
+脚本支持 `DS_API_KEY` / `DS_MODEL`，兼容 `DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL`，两组同时存在时优先 DS。
+未设置密钥时会隐藏输入，只传给当前子进程，不写入文件。`.env.example` 只列变量名，程序不会自动加载 `.env`。
 
-## Skill 的实际作用
+另一个终端启动前端：
 
-- `skills/vpn-evidence-workbench/SKILL.md`：开发设计约束，明确该模块以知识问答为主。
-- `backend/traffic_agent/skills/vpn-knowledge-qa/SKILL.md`：每次知识回答调用时实际读取，规定中文解释、来源引用、知识不足处理及 JSON 格式。
-- `traffic-evidence-review`：单独用于候选流的分析报告，不替代用户知识问答。
+```powershell
+Set-Location frontend
+npm ci
+npm run dev
+```
 
-代码执行输出结构校验、来源 ID 校验和异常处理。检索资料与历史消息按不可信数据传入，
-不能覆盖系统指令。无检索结果时直接提示资料不足，不发出付费请求。
+打开 `http://127.0.0.1:8088/#/knowledge`，勾选“使用本地 DeepSeek”。
 
-## 验证边界
+## 真实流式响应
 
-单元测试以 HTTP Mock 验证缺少配置、JSON 空内容与截断、超时、未知引用，以及提示词和 token 统计。
-2026-09-07 使用已配置的环境变量完成一次真实 DeepSeek smoke 验证：返回 3 段回答、3 个来源，
-耗时约 15.6 秒，共 3037 tokens。此记录是单例功能验证，不作为效果基准。引用存在性校验不等于语义支持度验证。
-当前 3 篇自编文档只是工程样例，回答覆盖面有限，之后需要扩展公开协议资料和评测集。
+浏览器通过 POST fetch 消费 `/api/knowledge/answer/stream`。Python 异步客户端向 DeepSeek 发送
+`stream: true` 和 `stream_options.include_usage: true`，不是完整生成后再模拟打字。事件协议为：
 
-随后通过真实浏览器验证了本地前端、Python API、DeepSeek 与引用展示的完整链路：
-另一条“开放集拒识是什么意思？”问题耗时约 4.3 秒、1136 tokens。
-以下截图已更新为后续流式请求结果，并非预设模型回答。
+```text
+status(retrieving)
+  → sources
+  → status(generating)
+  → draft*
+  → done | error
+```
 
-![真实 DeepSeek 知识问答](assets/knowledge-qa-deepseek.png)
+增量 JSON 尚不完整时只提取可解析段落，并标记为未校验草稿。只有完整 JSON、正常结束状态、Pydantic
+结构和引用 ID 全部通过，正式回答才进入页面与会话历史。未知引用、截断、异常 EOF 或上游错误会撤回草稿。
+前端支持 UTF-8 跨字节分块和 CRLF；前后端分别限制 SSE 帧、总输出和超时。
 
-DeepSeek 的 JSON 输出使用 `response_format: {type: json_object}`，并在提示词中规定 JSON 格式；
-实现参考 [官方 JSON Output 文档](https://api-docs.deepseek.com/guides/json_mode/)。
+“停止生成”使用 AbortController，取消会传播到后端并关闭上游 HTTP 流。当前不自动重试付费请求，
+也不支持断点续传。响应包含 `X-Accel-Buffering: no`；接入 Nginx 后还需单独验证代理缓冲和读取超时。
 
-## 流式响应与会话记忆
+![真实流式生成过程](assets/knowledge-qa-streaming.png)
 
-浏览器使用 POST fetch 读取 `/api/knowledge/answer/stream`。后端通过异步 HTTP 客户端实际开启
-DeepSeek `stream: true`，不是一次性生成后再做打字动画。协议参考
-[官方 Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/)。
+一次真实链路 smoke 记录：首段可见草稿 2782ms、完成 6828ms、1319 tokens。首段时间包含检索和上游等待，
+不是纯模型 TTFT；单次结果不代表平均性能。
 
-事件顺序为 `status → sources → draft* → done`，失败使用 `error`。JSON 增量尚不完整时，
-只解析可读取的段落文字，标注为未校验草稿；最后要求完整 JSON、正常结束与来源 ID 校验，才展示正式答案。
-不转发原始 JSON、隐藏推理或密钥。未知引用、截断、上游故障会撤回草稿，且不进入后续上下文。
+## 有边界的会话记忆
 
-浏览器停止按钮使用 AbortController；后端取消向上传播并关闭 HTTP 流。后端 65 秒总超时、
-输出字符上限，客户端也设超时与 SSE 帧大小上限。前端支持 UTF-8 跨字节分块、CRLF 与异常 EOF。
-响应附带 `X-Accel-Buffering: no`。若后续通过 Nginx 代理，还需验证实际代理缓冲及读取超时配置。
-当前为单次 POST 流，不支持断点续传，也不自动重试付费请求。
+记忆分为本地记录和模型上下文：
 
-![真实生成中的草稿与停止按钮](assets/knowledge-qa-streaming.png)
+- 用户主动开启后，localStorage 最多保存 5 个会话、每个 20 个有效轮次，7 天过期；支持刷新恢复、切换、新会话隔离和清除。
+- 模型只接收当前会话最近 8 条成功消息，总计不超过 8000 字符；后端再次限长。
+- 失败、取消和未通过引用校验的草稿不会保存，也不会进入下一轮上下文。
+- 历史回答只用于对话连贯性，不是检索证据，不能覆盖系统指令。
 
-记忆采用两层简单实现：
+这不是长期语义记忆、用户画像或跨设备存储。字符预算也不是精确 token 预算。共用浏览器不应保存敏感问题；
+存储损坏、禁用或容量不足时，页面提示并继续当前问答。
 
-- 会话记录：用户主动开启后写入本机 localStorage，最多 5 个会话、每个 20 个有效轮次；7 天过期，在加载时清理。支持刷新恢复、切换、新会话隔离和全部删除。不开启则刷新不保留。
-- 模型上下文：只选当前会话成功回答及其问题，最多 8 条消息，总计 8000 字符；后端再次限长。历史不是检索证据，不授予系统指令权限。
+![移动端恢复的资料摘录会话](assets/knowledge-qa-memory-mobile.png)
 
-字符预算不等于 tokenizer 精确 token 预算；没有摘要压缩、跨会话语义记忆或服务端用户隔离。
-本地记录不是加密保险箱，共用浏览器不要保存敏感问题；浏览器存储禁用或容量不足会提示且不阻断当前问答。
+## 连续追问解析
 
-![移动端恢复后的资料摘录会话](assets/knowledge-qa-memory-mobile.png)
+前后端共用 `shared/followup-policy.json`。只有“为什么呢”“举个例子”等明确通用追问才回溯最近 8 条消息中的
+明确用户主题；助手回答和其他无主题追问不会成为锚点。输入“UDP”这类独立问题会切换主题，找不到主题时返回
+`NEEDS_CONTEXT` 并请求补充，不调用模型。页面可展开查看策略和实际检索词。
 
-2026-09-07 单次真实流式验证：首段可见草稿 2782ms、最终完成 6828ms、1319 tokens。
-首段草稿计时包含检索和上游调用，不是纯模型 TTFT；单例数据不用于宣称平均性能或准确率。
-Playwright 验证真实草稿与最终引用、刷新恢复、新会话隔离、切换、删除和 390px 布局；
-另以浏览器模拟流验证停止与草稿撤回，以 Python Mock 流验证取消关闭上游。共 29 项 Python 与 14 项 Node 测试通过。
+该方案可解释、低成本，适合当前小语料；它不是任意指代消解或 LLM 查询改写。12 个共享策略案例确保 Python
+和浏览器行为一致。
 
-复现入口：`tools/check_live_knowledge_ui.js` 会触发一次付费请求；`tools/check_stream_ui.js`
-是无付费的停止交互测试。`tools/check_memory_ui.js` 可在已有成功回答的页面继续验证，无需再次请求模型。
+## Skill 与回答边界
 
-下一步优先做可标注的追问与证据支持度评测，再基于失败案例增加查询改写、历史摘要或服务端记忆，
-而不是先引入向量记忆数据库来增加架构复杂度。
+- `skills/vpn-evidence-workbench/SKILL.md` 是开发时的界面与证据约束。
+- `backend/traffic_agent/skills/vpn-knowledge-qa/SKILL.md` 在每次模型问答时读取，规定中文解释、资料不足处理和逐段引用。
+- `traffic-evidence-review` 单独服务候选流报告，不替代知识问答。
 
-## 连续追问的主题保留
+检索片段和历史都按不可信数据放入上下文。现阶段只验证返回结构和引用 ID 存在，尚未验证每句话都被原文语义支持。
 
-2026-09-08 修正了旧的“短问题拼接上一句”策略：第二次问“举个例子”时，上一句可能只有“为什么呢”，
-此时原始主题已经丢失；短的新主题如“UDP”又可能误拼上旧话题。
+## 验证与评测
 
-现在前后端共用 `shared/followup-policy.json`，仅对明确的通用追问回溯最近 8 条消息中的用户主题，
-跳过“为什么”“举个例子”等无主题消息，不使用助手回答作为主题锚点。独立问题不拼历史，
-找不到主题时返回 `NEEDS_CONTEXT` 请求补充且不调用模型。页面可展开“追问理解与检索词”查看策略结果。
+36 项 Python 测试覆盖 API、流式取消、截断、未知引用、Tool Router 和评测器；15 项 Node 测试覆盖检索一致性、
+SSE 分帧、记忆与追问策略。Playwright 覆盖生成草稿、停止撤回、刷新恢复、会话切换、来源定位和移动端布局。
 
-共用 `shared/followup-cases.json` 的 12 个手写策略用例覆盖连续追问、切换主题、标点、仅助手历史和无上下文，
-另测历史窗口隔离与实际检索结果。这是开发回归样例，不是独立质量评测集，不报告准确率提升。
-当前共 31 项 Python、15 项 Node 测试。规则只覆盖列明的追问表达，不宣称理解任意指代或隐含话题切换。
+小型开发集的 Hit@K、MRR、域外拒答和引用合同见[评测报告](knowledge-evaluation.md)。它与当前语料同源，
+只用于回归。分层评测设计见[Tool Router 与分层评测](tool-routing-and-evaluation.md)。
+
+## 当前限制
+
+- 语料只有 3 篇自编文档、6 个切片，无法覆盖真实安全知识问答。
+- 检索只有 BM25，没有向量召回、RRF、重排和权限过滤。
+- 没有独立回答质量标注集、语义支持度校验和多模型对比。
+- 会话只存浏览器，没有服务端用户隔离、摘要压缩或跨设备同步。
+- Nginx 反向代理下的 SSE 缓冲仍待实测。

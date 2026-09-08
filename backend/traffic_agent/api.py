@@ -15,6 +15,7 @@ from .agent.workflow import AgentWorkflow
 from .knowledge import retrieve_context
 from .knowledge_answer import answer
 from .knowledge_stream import stream_answer, bounded_history
+from .agent.tool_router import public_catalog
 
 
 class ReviewRequest(BaseModel):
@@ -23,6 +24,7 @@ class ReviewRequest(BaseModel):
     candidates: List[Dict[str, Any]] = Field(default_factory=lambda: [demo_candidate()])
     featureEvidence: Dict[str, Any] = Field(default_factory=dict)
     modelEvidence: Dict[str, Any] = Field(default_factory=dict)
+    requestedTools: List[str] = Field(default_factory=list, max_length=8)
 
 
 app = FastAPI(title="Evidence-grounded Traffic Agent", version="1.0.0")
@@ -69,6 +71,11 @@ def health():
             "analyst": configuration()}
 
 
+@app.get('/api/tools')
+def tools_catalog():
+    return public_catalog()
+
+
 @app.post("/api/agent/review")
 def review(request: ReviewRequest):
     workflow = AgentWorkflow(retriever=retrieve_context, analyst=analyze) if request.provider == "deepseek" else build_demo_workflow()
@@ -78,4 +85,5 @@ def review(request: ReviewRequest):
         "featureEvidence": request.featureEvidence,
         "modelEvidence": request.modelEvidence,
         "reportSnapshot": {"riskLevel": "UNKNOWN"},
+        "requestedTools": request.requestedTools,
     })

@@ -17,6 +17,8 @@ jobs:
       - run: pip install -r backend/requirements.txt
       - run: python -m unittest discover -s backend/tests -v
       - run: python tools/generate_demo.py
+      - run: python tools/evaluate_knowledge.py --fail-on-gate
+      - run: git diff --exit-code
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

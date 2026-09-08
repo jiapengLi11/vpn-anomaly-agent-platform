@@ -41,14 +41,21 @@
         <h2>回答依据</h2><p class="sources-explainer">点击回答中的引用，查看对应原文。知识资料用于解释，不自动判定当前流量。</p>
         <div v-if="!activeSources.length" class="source-empty">提问后，相关资料会出现在这里。<small>当前收录：特征解释、模型边界、证据引用与人工复核。</small></div>
         <article v-for="(source,index) in activeSources" :key="source.id" :class="{highlighted:source.id===activeId}" class="qa-source"><h3>[{{ index+1 }}] {{ source.title }}</h3><p>{{ source.content }}</p><small>{{ source.source }} / {{ source.section }}</small><details><summary>版本和引用标识</summary><p>{{ source.version }}</p><p>{{ source.id }}</p><p>SHA-256: {{ source.sourceHash }}</p></details></article>
+        <section v-if="evaluation" class="quality-baseline">
+          <div><span>ENGINEERING BASELINE</span><b>{{ evaluation.passed ? 'PASS' : 'REVIEW' }}</b></div>
+          <h2>知识检索开发集</h2>
+          <div class="quality-metrics"><p><strong>{{ percent(evaluation.metrics.hitAt1) }}</strong><small>Hit@1</small></p><p><strong>{{ percent(evaluation.metrics.mrr) }}</strong><small>MRR</small></p><p><strong>{{ evaluation.caseCounts.retrieval + evaluation.caseCounts.rejection + evaluation.caseCounts.conversation }}</strong><small>标注场景</small></p></div>
+          <small>自编开发集，仅用于防回归，不代表真实业务准确率。</small>
+        </section>
       </aside>
     </div>
   </section>
 </template>
 <script setup>
-import { computed, ref, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { askKnowledge, localModelAvailable } from '../services/knowledgeAnswer';
 import { loadMemory, saveMemory, cleanSessions, buildHistory, MEMORY_KEY } from '../services/conversationMemory';
+import { loadKnowledgeEvaluation } from '../services/knowledgeEvaluation';
 const topics = [
   {label:'流量特征', question:'长会话和双向均衡能说明什么？'},
   {label:'模型原理', question:'开放集拒识是什么意思？'},
@@ -61,6 +68,7 @@ const saved=loadMemory(storage);
 const remember=ref(saved.enabled), sessions=ref(saved.sessions), memoryError=ref(saved.error || '');
 const sessionId=ref(saved.sessions[0]?.id || crypto.randomUUID());
 const question=ref(''), turns=ref(saved.sessions[0]?.turns || []), provider=ref('demo'), busy=ref(false), activeTurn=ref(turns.value.length-1), activeId=ref(''), sourcePanel=ref(null);
+const evaluation=ref(null);
 const activeSources=computed(() => turns.value[activeTurn.value]?.answer?.sources || turns.value[activeTurn.value]?.sources || []);
 let controller, stopped=false;
 function persist() {
@@ -84,6 +92,7 @@ function reset() { persist(); sessionId.value=crypto.randomUUID(); turns.value=[
 function stop() { stopped=true; controller?.abort(); }
 function sourceNumber(turn,id) { return (turn.answer.sources || []).findIndex(source=>source.id===id)+1; }
 function showSource(index,id) { activeTurn.value=index; activeId.value=id; sourcePanel.value?.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+function percent(value) { return `${(value*100).toFixed(value===1 ? 0 : 1)}%`; }
 async function submit() {
   if(busy.value || !question.value.trim()) return;
   const text=question.value.trim(); question.value=''; busy.value=true;
@@ -100,6 +109,7 @@ async function submit() {
   catch(e) { current.error=stopped ? '已停止生成，未完成草稿不会写入记忆。' : e.name==='AbortError' ? '回答超时，请稍后重试。' : '生成失败或连接中断，未完成草稿已撤回。请检查本地服务后重试。'; question.value=text; }
   finally { current.draft=''; clearTimeout(timer); busy.value=false; persist(); }
 }
+onMounted(async()=>{ try { evaluation.value=await loadKnowledgeEvaluation(); } catch { evaluation.value=null; } });
 onUnmounted(()=>controller?.abort());
 </script>
 <style scoped>
@@ -112,6 +122,7 @@ onUnmounted(()=>controller?.abort());
 .answer-paragraph p {white-space:pre-wrap;overflow-wrap:anywhere;}.answer-notice {margin-top:10px;}.citation {border:0;background:#eef6f6;color:#186774;font-size:12px;padding:5px 8px;margin:0 6px 6px 0;border-radius:3px;cursor:pointer;}.follow-ups {display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;font-size:12px;}.follow-ups button {background:white;border:1px solid #ccdedd;padding:7px;color:#276c74;cursor:pointer;}.answer-meta {font-size:12px;margin-top:14px;color:#627881;}.qa-error {color:#a34527;}
 .qa-composer {padding:24px;background:#fafcfb;}.qa-composer label {display:block;font-weight:600;font-size:13px;margin-bottom:10px;}.qa-composer textarea {box-sizing:border-box;width:100%;resize:vertical;border:1px solid #cbdcda;border-radius:5px;padding:14px;font:inherit;font-size:14px;line-height:1.7;}.qa-composer textarea:focus {outline:2px solid #2c9298;}.qa-composer>div {display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:12px;}
 .qa-sources {padding:24px;position:sticky;top:90px;}.qa-sources h2 {font-size:17px;}.sources-explainer {font-size:12px;}.source-empty {padding:24px 0;color:#5a717b;font-size:14px;line-height:1.7;}.qa-source {padding:18px 0;border-top:1px solid #dce6e4;}.qa-source h3 {font-size:14px;color:#244b55;line-height:1.6;margin:0;}.qa-source p {font-size:12px;overflow-wrap:anywhere;}.qa-source details {font-size:12px;margin-top:12px;color:#637982;}.qa-source.highlighted {background:#f0f8ef;border-left:3px solid #5ba836;padding-left:12px;}.qa-source small {overflow-wrap:anywhere;}summary {cursor:pointer;}button:focus-visible {outline:2px solid #228997;}
+.quality-baseline {margin-top:22px;padding-top:20px;border-top:1px solid #dce6e4;}.quality-baseline>div:first-child {display:flex;justify-content:space-between;color:#65808a;font-size:9px;letter-spacing:.08em;}.quality-baseline>div:first-child b {color:#36875b;}.quality-baseline h2 {margin-top:8px;}.quality-metrics {display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:14px 0;}.quality-metrics p {margin:0;padding:10px 6px;background:#f3f7f5;text-align:center;}.quality-metrics strong,.quality-metrics small {display:block;}.quality-metrics strong {color:#224e49;font-size:16px;}.quality-metrics small {font-size:9px;}
 @media(max-width:1100px) {.qa-layout {grid-template-columns:minmax(0,1fr);}.qa-sources {position:static;}}
 @media(max-width:600px) {.qa-mode {flex-direction:column;padding:16px;}.qa-welcome,.qa-composer {padding:20px 16px;}.topic-list {grid-template-columns:1fr;}.qa-turns {padding:0 16px;}.qa-composer>div {align-items:flex-start;}.qa-composer small {max-width:65%;}.qa-sources {padding:20px;}}
 </style>

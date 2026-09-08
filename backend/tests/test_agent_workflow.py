@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from traffic_agent.agent.admission import admit_agent_context, sanitize_agent_data
 from traffic_agent.agent.claim_gate import validate_agent_claims
 from traffic_agent.agent.workflow import AgentWorkflow
+from traffic_agent.agent.tool_router import route_tools, public_catalog
 
 
 def candidate(index: int = 1):
@@ -86,6 +87,43 @@ class ClaimGateTest(unittest.TestCase):
 
 
 class AgentWorkflowTest(unittest.TestCase):
+    def test_tool_router_whitelists_tools_and_enforces_dependencies(self):
+        safe, _ = admit_agent_context("T-safe", [candidate(1)])
+        context = {"candidates": safe["candidates"]}
+        default = route_tools(context)
+        self.assertEqual([tool['name'] for tool in default['selectedTools']],
+                         ['knowledge.search', 'analyst.review'])
+        rejected = route_tools(context, ['shell.exec', 'analyst.review'])
+        self.assertEqual(rejected['status'], 'REJECTED')
+        self.assertEqual(rejected['selectedTools'], [])
+        self.assertEqual([item['reason'] for item in rejected['rejectedTools']],
+                         ['TOOL_NOT_REGISTERED', 'MISSING_DEPENDENCY'])
+        incomplete = route_tools(context, ['knowledge.search'])
+        self.assertEqual(incomplete['selectedTools'], [])
+        self.assertEqual(incomplete['rejectedTools'][0]['reason'], 'REQUIRED_TERMINAL_TOOL_NOT_REQUESTED')
+        self.assertEqual(len(public_catalog()['tools']), 2)
+
+    def test_tool_router_blocks_candidates_without_evidence(self):
+        item = candidate(1)
+        item['evidence'] = []
+        retriever, analyst = Mock(), Mock()
+        result = AgentWorkflow(retriever=retriever, analyst=analyst).invoke(
+            {"taskId": "T-no-evidence", "rawCandidates": [item]})
+        retriever.assert_not_called()
+        analyst.assert_not_called()
+        self.assertEqual(result['status'], 'SKIPPED_TOOL_ROUTER')
+        self.assertEqual(result['toolPlan']['status'], 'NEEDS_EVIDENCE')
+        self.assertEqual(result['securityVerdict'], 'UNKNOWN')
+
+    def test_explicit_unknown_tool_fails_closed(self):
+        retriever, analyst = Mock(), Mock()
+        result = AgentWorkflow(retriever=retriever, analyst=analyst).invoke(
+            {"taskId": "T-unknown-tool", "rawCandidates": [candidate(1)],
+             "requestedTools": ["shell.exec"]})
+        retriever.assert_not_called()
+        analyst.assert_not_called()
+        self.assertEqual(result['toolPlan']['rejectedTools'][0]['reason'], 'TOOL_NOT_REGISTERED')
+
     def test_no_candidate_short_circuits_tools(self):
         retriever, analyst = Mock(), Mock()
         result = AgentWorkflow(retriever=retriever, analyst=analyst).invoke(
@@ -121,7 +159,7 @@ class AgentWorkflowTest(unittest.TestCase):
         self.assertEqual(result["claimAudit"]["rejectedCount"], 1)
         self.assertEqual(
             [item["node"] for item in result["trace"]],
-            ["security_admission", "knowledge_retrieval", "analyst_model", "claim_gate", "finalize"],
+            ["security_admission", "tool_router", "knowledge_retrieval", "analyst_model", "claim_gate", "finalize"],
         )
 
     def test_retrieval_and_analyst_failures_degrade_without_changing_verdict(self):

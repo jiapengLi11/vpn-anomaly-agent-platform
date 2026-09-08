@@ -9,11 +9,13 @@ flowchart LR
     B --> D[Candidate Gate]
     C --> D
     D -->|candidate only| E[Security admission]
-    E --> F[Knowledge retrieval]
-    F --> G[Analyst model]
-    G --> H[Claim Gate]
-    H --> I[Audited report]
-    D -->|no candidate| I
+    E --> F[Tool Router]
+    F -->|admitted plan| G[Knowledge retrieval]
+    G --> H[Analyst model]
+    H --> I[Claim Gate]
+    I --> J[Audited report]
+    D -->|no candidate| J
+    F -->|rejected plan| J
 ```
 
 The classifier predicts a traffic category; it does not determine maliciousness. The deterministic gate creates
@@ -25,12 +27,14 @@ the Agent context.
 | Node | Responsibility | Failure behavior |
 | --- | --- | --- |
 | `security_admission` | Cap the batch, pseudonymize network identifiers, remove paths | Reject invalid limits before tool calls |
+| `tool_router` | Select registered tools and enforce evidence/dependency policy | Reject the plan and skip all downstream tools |
 | `knowledge_retrieval` | Retrieve compact reference snippets | Degrade to an empty result without leaking exception text |
 | `analyst_model` | Produce narrative and structured claims | Preserve the deterministic report and return no claims |
 | `claim_gate` | Validate claim type, flow scope and evidence IDs | Reject unsupported or ungrounded claims |
 | `finalize` | Persist trace and fixed verdict | Always keep `securityVerdict=UNKNOWN` |
 
-The `no candidates` edge short-circuits retrieval and model calls. This saves cost and makes the skip visible in
+The `no candidates` edge short-circuits routing, retrieval and model calls. A candidate with no admitted evidence,
+an unknown requested tool, or a missing dependency is also stopped before execution. This saves cost and makes the skip visible in
 the trace rather than hiding it as a successful model response.
 
 ## Claim contract
@@ -51,7 +55,9 @@ Candidate evidence codes form the Agent query. No matching terms means no hits.
 
 The fixture generator exports this corpus to the browser. Python and JavaScript scores and rankings are
 compared in CI on eight queries, including blank and unmatched inputs. This is implementation consistency
-testing, not a retrieval-quality benchmark. Dense retrieval, reranking and graph queries remain future work.
+testing. A separate versioned development set reports Hit@1, Hit@3, MRR, out-of-domain rejection,
+conversation resolution and citation-contract checks. It is intentionally labelled as a development regression set,
+not an independent quality benchmark. Dense retrieval, reranking and graph queries remain future work.
 
 ## Public-repository contents
 
