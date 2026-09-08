@@ -34,6 +34,16 @@
 
 实现细节和生产边界见 [用量与沙箱计费](docs/billing-and-usage.md)。真实支付仍需要商户证书、回调验签、退款、对账和统一身份认证，不能把本演示当作商业支付系统。
 
+### 页面实拍
+
+桌面端把免费额度、价格版本、7 日 token 使用和流水放在同一个成本治理页面：
+
+![用量与计费桌面端](docs/assets/billing-center-desktop.png)
+
+充值流程只创建演示订单，不跳转真实支付渠道：
+
+![微信支付宝沙箱充值弹窗](docs/assets/billing-checkout-sandbox.png)
+
 ## Search the knowledge base
 
 知识模块支持连续提问、真实 SSE、停止生成、可选本机会话记忆、引用跳转与本地 DeepSeek 回答。
