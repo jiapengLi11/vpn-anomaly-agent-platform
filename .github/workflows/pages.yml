@@ -27,6 +27,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -r backend/requirements.txt
       - run: python tools/generate_demo.py
+      - run: python tools/check_public_boundary.py
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

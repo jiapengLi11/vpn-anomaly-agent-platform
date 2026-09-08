@@ -125,8 +125,6 @@ export function displayKnowledgeTag(value) {
 export function displayKnowledgeSourceFamily(source) {
   const safe = String(source || "");
   if (!safe) return "暂无";
-  if (safe.includes("\\kunpeng_test\\")) return "SEQUENCE_ENCODER 路线文档";
-  if (safe.includes("\\cash\\")) return "FEATURE_RULES 文档";
   if (safe.includes("工程开发日志") || safe.includes("设计与优化方案")) return "平台技术说明";
   return "平台知识文档";
 }
