@@ -71,6 +71,19 @@ class KnowledgeAnswerTest(unittest.TestCase):
                 with patch('traffic_agent.deepseek.httpx.post', return_value=response):
                     self.assertEqual(answer('UDP', [], 'deepseek')['status'], 'FAILED')
 
+    def test_payment_status_is_actionable_without_upstream_body(self):
+        request = httpx.Request('POST', 'https://api.deepseek.com/chat/completions')
+        response = httpx.Response(402, request=request, text='private billing response')
+        error = httpx.HTTPStatusError('private upstream details', request=request, response=response)
+        with patch.dict(os.environ, {'DS_API_KEY': 'unit-test-placeholder'}), patch(
+                'traffic_agent.deepseek.httpx.post', side_effect=error):
+            result = answer('开放集拒识', [], 'deepseek')
+        self.assertEqual(result['status'], 'FAILED')
+        self.assertEqual(result['upstreamStatus'], 402)
+        self.assertIn('账户余额', result['message'])
+        self.assertNotIn('private', json.dumps(result))
+        self.assertNotIn('unit-test-placeholder', json.dumps(result))
+
     def test_api_rejects_invalid_history_and_provider(self):
         with TestClient(app) as client:
             self.assertEqual(client.post('/api/knowledge/answer', json={'question':'UDP'}).json()['status'], 'EXTRACTIVE')

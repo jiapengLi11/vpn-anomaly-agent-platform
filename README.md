@@ -26,6 +26,7 @@
 [frontend-design-notes.md](docs/frontend-design-notes.md)。
 已完成与待完成能力见 [实现状态](docs/implementation-status.md)。
 [Tool Router 与分层评测](docs/tool-routing-and-evaluation.md)说明路由策略、评测边界及后续层次。
+[回答质量开发基线](docs/answer-quality-evaluation.md)展示可复现的摘录模式实测、自动合同和人工复核边界。
 
 ## Search the knowledge base
 
@@ -90,11 +91,12 @@ npm run dev
 
 ## Verification and evaluation
 
-- 36 个 Python 测试覆盖 Agent/API、Tool Router、检索、流式取消与引用校验；15 个 Node 测试覆盖检索一致性、SSE 分帧、会话记忆与追问策略。
+- 42 个 Python 测试覆盖 Agent/API、Tool Router、检索、回答评测、流式取消与引用校验；16 个 Node 测试覆盖检索一致性、评测产物、SSE 分帧、会话记忆与追问策略。
 - Vue production build 已验证，`npm audit` 为 0 个已知漏洞。
 - Playwright CLI 已验证 1440px 与 390px 关键页面，浏览器控制台 0 错误。
 - CI 重建合成数据，执行测试、评测门槛和前端构建，并检查生成报告未漂移。
 - 小型自编开发集包含 12 个域内、5 个域外和 4 个会话用例；结果只用于回归，不是独立效果验收。
+- 回答开发集包含 5 个域内、2 个域外用例；摘录模式合同实测为 100%，明确不代表 LLM 质量或业务准确率。
 
 ## Repository scope
 

@@ -61,6 +61,19 @@ class StreamingTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(events[-1]['data']['status'], status)
             client.assert_not_called()
 
+    async def test_payment_status_is_safe_and_actionable(self):
+        client = httpx.AsyncClient(transport=httpx.MockTransport(
+            lambda request: httpx.Response(402, text='private billing response')))
+        with patch.dict(os.environ, {'DS_API_KEY': 'test-placeholder'}), patch(
+                'traffic_agent.knowledge_stream.httpx.AsyncClient', return_value=client):
+            events = [event async for event in stream_answer('开放集拒识', [], 'deepseek')]
+        error = events[-1]
+        self.assertEqual(error['event'], 'error')
+        self.assertEqual(error['data']['upstreamStatus'], 402)
+        self.assertIn('账户余额', error['data']['message'])
+        self.assertNotIn('private', str(error))
+        self.assertNotIn('test-placeholder', str(error))
+
     async def test_cancel_closes_upstream(self):
         closed = asyncio.Event()
         class WaitingStream(httpx.AsyncByteStream):

@@ -14,3 +14,10 @@ test('empty corpus and result limit', () => {
   assert.deepEqual(searchDocuments([], 'UDP').items, []);
   assert.equal(searchDocuments(documents, 'LONG_SESSION', 1).items.length, 1);
 });
+test('answer quality artifact keeps extractive scope explicit', () => {
+  const report = read('answer-evaluation.json');
+  assert.equal(report.scope, 'SELF_AUTHORED_DEVELOPMENT_SET');
+  assert.equal(report.answerMode, 'EXTRACTIVE');
+  assert.equal(report.humanReviewStatus, 'PENDING');
+  assert.equal(report.automatedGatePassed, true);
+});

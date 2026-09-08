@@ -96,6 +96,9 @@ async def stream_answer(question, history, provider):
         result['firstDraftMs'] = first_ms
         yield {'event': 'done', 'data': result}
     except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, AttributeError, TimeoutError) as exc:
+        upstream_status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
+        message = ('模型服务拒绝了计费请求（HTTP 402），草稿已撤回，请检查 API 账户余额后重试。'
+                   if upstream_status == 402 else '生成中断或校验失败，草稿已撤回，请重试。')
         yield {'event': 'error', 'data': {'status': 'FAILED', 'errorType': type(exc).__name__,
-                                         'message': '生成中断或校验失败，草稿已撤回，请重试。'}}
+                                         'upstreamStatus': upstream_status, 'message': message}}
     # Cancellation deliberately propagates so a disconnected browser closes the upstream stream.

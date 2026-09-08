@@ -56,6 +56,10 @@ def complete(context, schema=Brief, skill=SKILL):
         return {**config, **brief.model_dump(), "skill": skill.parent.name, "status": "SUCCESS", "usage": usage,
                 "elapsedMs": round((time.monotonic() - started) * 1000),
                 "narrativeValidationStatus": "UNVERIFIED_NARRATIVE"}
+    except httpx.HTTPStatusError as exc:
+        return {**config, "status": "FAILED", "errorType": type(exc).__name__,
+                "upstreamStatus": exc.response.status_code, "claims": [],
+                "elapsedMs": round((time.monotonic() - started) * 1000)}
     except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
         return {**config, "status": "FAILED", "errorType": type(exc).__name__, "claims": [],
                 "elapsedMs": round((time.monotonic() - started) * 1000)}

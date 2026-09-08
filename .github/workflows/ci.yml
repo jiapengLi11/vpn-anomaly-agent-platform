@@ -18,6 +18,8 @@ jobs:
       - run: python -m unittest discover -s backend/tests -v
       - run: python tools/generate_demo.py
       - run: python tools/evaluate_knowledge.py --fail-on-gate
+      - run: python tools/run_answer_quality.py --provider demo --output evaluation/runs/demo-extractive-20260908-v1.json --overwrite --recorded-at 2026-09-08T03:00:49+00:00
+      - run: python tools/evaluate_answer_quality.py --run evaluation/runs/demo-extractive-20260908-v1.json --fail-on-gate
       - run: git diff --exit-code
       - uses: actions/setup-node@v4
         with:

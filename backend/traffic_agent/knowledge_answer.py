@@ -18,6 +18,12 @@ class Answer(BaseModel):
     followUps: list[str] = Field(default_factory=list, max_length=3)
 
 
+def provider_failure_message(result):
+    if result.get("upstreamStatus") == 402:
+        return "模型服务拒绝了计费请求（HTTP 402），请检查 API 账户余额后重试。"
+    return "模型回答失败，请稍后重试。"
+
+
 def answer(question, history, provider):
     context = resolve_query(question, history)
     if context['strategy'] == 'NEEDS_CONTEXT':
@@ -38,8 +44,8 @@ def answer(question, history, provider):
     result = complete({"question": question, "history": history, "sources": sources}, Answer, skill)
     if result["status"] != "SUCCESS":
         return {**base, "status": result["status"], "paragraphs": [],
-                "message": "请在本地后端配置 DS_API_KEY（也兼容 DEEPSEEK_API_KEY）。" if result["status"] == "SKIPPED" else "模型回答失败，请稍后重试。",
-                "errorType": result.get("errorType")}
+                "message": "请在本地后端配置 DS_API_KEY（也兼容 DEEPSEEK_API_KEY）。" if result["status"] == "SKIPPED" else provider_failure_message(result),
+                "errorType": result.get("errorType"), "upstreamStatus": result.get("upstreamStatus")}
     return validate_answer(base, result)
 
 

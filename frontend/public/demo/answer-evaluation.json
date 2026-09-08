@@ -1,0 +1,168 @@
+{
+  "datasetVersion": "answer-quality-dev-v1",
+  "runId": "demo-extractive-20260908-v1",
+  "provider": "demo",
+  "model": "deterministic-extractive-v1",
+  "answerMode": "EXTRACTIVE",
+  "runStatus": "COMPLETE",
+  "scope": "SELF_AUTHORED_DEVELOPMENT_SET",
+  "caseCount": 7,
+  "answerCaseCount": 5,
+  "abstentionCaseCount": 2,
+  "totalTokens": 0,
+  "metrics": {
+    "statusSuccess": 1.0,
+    "conceptCoverage": 1.0,
+    "citationValidity": 1.0,
+    "requiredSourceCoverage": 1.0,
+    "forbiddenClaimAvoidance": 1.0,
+    "abstentionAccuracy": 1.0
+  },
+  "gates": {
+    "statusSuccess": {
+      "actual": 1.0,
+      "minimum": 1.0,
+      "passed": true
+    },
+    "conceptCoverage": {
+      "actual": 1.0,
+      "minimum": 0.8,
+      "passed": true
+    },
+    "citationValidity": {
+      "actual": 1.0,
+      "minimum": 1.0,
+      "passed": true
+    },
+    "requiredSourceCoverage": {
+      "actual": 1.0,
+      "minimum": 0.8,
+      "passed": true
+    },
+    "forbiddenClaimAvoidance": {
+      "actual": 1.0,
+      "minimum": 1.0,
+      "passed": true
+    },
+    "abstentionAccuracy": {
+      "actual": 1.0,
+      "minimum": 1.0,
+      "passed": true
+    }
+  },
+  "automatedGatePassed": true,
+  "humanReviewStatus": "PENDING",
+  "details": [
+    {
+      "id": "A01",
+      "expected": "ANSWER",
+      "status": "EXTRACTIVE",
+      "passed": true,
+      "concepts": {
+        "known-boundary": true,
+        "uncertainty": true,
+        "not-malicious": true,
+        "combine-evidence": true
+      },
+      "missingConcepts": [],
+      "forbiddenHits": [],
+      "citedSections": [
+        "序列分类与开放集拒识",
+        "调查候选不是恶意结论"
+      ]
+    },
+    {
+      "id": "A02",
+      "expected": "ANSWER",
+      "status": "EXTRACTIVE",
+      "passed": true,
+      "concepts": {
+        "packet-count": true,
+        "byte-count": true,
+        "duration": true,
+        "bidirectional": true,
+        "benign-alternative": true
+      },
+      "missingConcepts": [],
+      "forbiddenHits": [],
+      "citedSections": [
+        "UDP 会话与双向流量",
+        "调查候选不是恶意结论"
+      ]
+    },
+    {
+      "id": "A03",
+      "expected": "ANSWER",
+      "status": "EXTRACTIVE",
+      "passed": true,
+      "concepts": {
+        "threshold": true,
+        "interval": true,
+        "jitter": true,
+        "repeat": true,
+        "audit": true
+      },
+      "missingConcepts": [],
+      "forbiddenHits": [],
+      "citedSections": [
+        "调查候选不是恶意结论",
+        "长会话与周期性"
+      ]
+    },
+    {
+      "id": "A04",
+      "expected": "ANSWER",
+      "status": "EXTRACTIVE",
+      "passed": true,
+      "concepts": {
+        "review": true,
+        "not-proof": true,
+        "separation": true
+      },
+      "missingConcepts": [],
+      "forbiddenHits": [],
+      "citedSections": [
+        "序列分类与开放集拒识",
+        "调查候选不是恶意结论"
+      ]
+    },
+    {
+      "id": "A05",
+      "expected": "ANSWER",
+      "status": "EXTRACTIVE",
+      "passed": true,
+      "concepts": {
+        "unknown": true,
+        "asset": true,
+        "business": true,
+        "history": true
+      },
+      "missingConcepts": [],
+      "forbiddenHits": [],
+      "citedSections": [
+        "引用与人工复核",
+        "长会话与周期性"
+      ]
+    },
+    {
+      "id": "A06",
+      "expected": "ABSTAIN",
+      "status": "NO_SOURCES",
+      "passed": true,
+      "concepts": {},
+      "missingConcepts": [],
+      "forbiddenHits": [],
+      "citedSections": []
+    },
+    {
+      "id": "A07",
+      "expected": "ABSTAIN",
+      "status": "NO_SOURCES",
+      "passed": true,
+      "concepts": {},
+      "missingConcepts": [],
+      "forbiddenHits": [],
+      "citedSections": []
+    }
+  ]
+}

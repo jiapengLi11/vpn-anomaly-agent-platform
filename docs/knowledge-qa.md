@@ -58,6 +58,7 @@ status(retrieving)
 
 “停止生成”使用 AbortController，取消会传播到后端并关闭上游 HTTP 流。当前不自动重试付费请求，
 也不支持断点续传。响应包含 `X-Accel-Buffering: no`；接入 Nginx 后还需单独验证代理缓冲和读取超时。
+鉴权、余额或限流错误只向前端传递 HTTP 状态码和可操作提示，不保存上游响应正文；HTTP 402 会提示检查 API 账户余额。
 
 ![真实流式生成过程](assets/knowledge-qa-streaming.png)
 
@@ -97,16 +98,17 @@ status(retrieving)
 
 ## 验证与评测
 
-36 项 Python 测试覆盖 API、流式取消、截断、未知引用、Tool Router 和评测器；15 项 Node 测试覆盖检索一致性、
-SSE 分帧、记忆与追问策略。Playwright 覆盖生成草稿、停止撤回、刷新恢复、会话切换、来源定位和移动端布局。
+42 项 Python 测试覆盖 API、流式取消、截断、未知引用、Tool Router 和分层评测器；16 项 Node 测试覆盖检索一致性、
+评测产物、SSE 分帧、记忆与追问策略。Playwright 覆盖生成草稿、停止撤回、刷新恢复、会话切换、来源定位和移动端布局。
 
-小型开发集的 Hit@K、MRR、域外拒答和引用合同见[评测报告](knowledge-evaluation.md)。它与当前语料同源，
-只用于回归。分层评测设计见[Tool Router 与分层评测](tool-routing-and-evaluation.md)。
+小型开发集的 Hit@K、MRR、域外拒答和引用合同见[检索评测报告](knowledge-evaluation.md)。回答层的自动合同、
+运行冻结和人工量表见[回答质量报告](answer-quality-evaluation.md)。它们均与当前语料同源，只用于开发回归；
+完整层次见[Tool Router 与分层评测](tool-routing-and-evaluation.md)。
 
 ## 当前限制
 
 - 语料只有 3 篇自编文档、6 个切片，无法覆盖真实安全知识问答。
 - 检索只有 BM25，没有向量召回、RRF、重排和权限过滤。
-- 没有独立回答质量标注集、语义支持度校验和多模型对比。
+- 已有回答质量评测工具，但没有独立标注集、语义支持度校验和多模型对比，因此不报告业务效果数字。
 - 会话只存浏览器，没有服务端用户隔离、摘要压缩或跨设备同步。
 - Nginx 反向代理下的 SSE 缓冲仍待实测。

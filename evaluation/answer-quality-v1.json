@@ -1,0 +1,97 @@
+{
+  "version": "answer-quality-dev-v1",
+  "scope": "SELF_AUTHORED_DEVELOPMENT_SET",
+  "description": "Heuristic and human-review rubric for grounded knowledge answers. Not an independent benchmark.",
+  "gates": {
+    "statusSuccess": 1.0,
+    "conceptCoverage": 0.8,
+    "citationValidity": 1.0,
+    "requiredSourceCoverage": 0.8,
+    "forbiddenClaimAvoidance": 1.0,
+    "abstentionAccuracy": 1.0
+  },
+  "cases": [
+    {
+      "id": "A01",
+      "question": "开放集拒识是什么意思？为什么 unknown 不能直接看作恶意流量？",
+      "expected": "ANSWER",
+      "requiredSections": ["序列分类与开放集拒识"],
+      "concepts": [
+        {"id":"known-boundary","anyOf":["超出已知类别","不属于已知类别","已知类别范围"]},
+        {"id":"uncertainty","anyOf":["信心不足","置信不足","不确定"]},
+        {"id":"not-malicious","anyOf":["不等于发现恶意流量","不代表恶意","不等同于恶意","不能直接看作恶意"]},
+        {"id":"combine-evidence","anyOf":["确定性特征证据","其他证据","共同进入候选"]}
+      ],
+      "forbiddenPhrases": ["确认恶意", "一定是恶意", "自动封禁"]
+    },
+    {
+      "id": "A02",
+      "question": "解释 UDP 会话和双向均衡时要看哪些特征？为什么不能只按端口判断？",
+      "expected": "ANSWER",
+      "requiredSections": ["UDP 会话与双向流量"],
+      "concepts": [
+        {"id":"packet-count","anyOf":["包数"]},
+        {"id":"byte-count","anyOf":["字节数"]},
+        {"id":"duration","anyOf":["持续时间"]},
+        {"id":"bidirectional","anyOf":["双向"]},
+        {"id":"benign-alternative","anyOf":["业务同步","实时通信"]}
+      ],
+      "forbiddenPhrases": ["只要是 443", "确认是 VPN", "一定是隧道"]
+    },
+    {
+      "id": "A03",
+      "question": "LONG_SESSION 和周期性连接应该怎样复核？",
+      "expected": "ANSWER",
+      "requiredSections": ["长会话与周期性"],
+      "concepts": [
+        {"id":"threshold","anyOf":["阈值"]},
+        {"id":"interval","anyOf":["时间间隔"]},
+        {"id":"jitter","anyOf":["抖动"]},
+        {"id":"repeat","anyOf":["重复次数"]},
+        {"id":"audit","anyOf":["规则版本","证据 ID","观测值"]}
+      ],
+      "forbiddenPhrases": ["长会话就是 VPN", "确认恶意", "立即封禁"]
+    },
+    {
+      "id": "A04",
+      "question": "为什么调查候选不能直接当成恶意结论？",
+      "expected": "ANSWER",
+      "requiredSections": ["调查候选不是恶意结论"],
+      "concepts": [
+        {"id":"review","anyOf":["需要复核","进一步调查","人工复核"]},
+        {"id":"not-proof","anyOf":["不能单独证明","不等于确认","不能直接证明"]},
+        {"id":"separation","anyOf":["分别记录","分开记录","区分"]}
+      ],
+      "forbiddenPhrases": ["候选即恶意", "自动处置", "直接封禁"]
+    },
+    {
+      "id": "A05",
+      "question": "证据不足时研判报告应该怎么写，还需要人工核实什么？",
+      "expected": "ANSWER",
+      "requiredSections": ["引用与人工复核"],
+      "concepts": [
+        {"id":"unknown","anyOf":["UNKNOWN","不确定","证据不足"]},
+        {"id":"asset","anyOf":["资产"]},
+        {"id":"business","anyOf":["业务用途"]},
+        {"id":"history","anyOf":["历史连接"]}
+      ],
+      "forbiddenPhrases": ["确认安全", "确认恶意", "无需复核"]
+    },
+    {
+      "id": "A06",
+      "question": "WireGuard 握手消息的固定字段偏移是多少？",
+      "expected": "ABSTAIN",
+      "requiredSections": [],
+      "concepts": [],
+      "forbiddenPhrases": []
+    },
+    {
+      "id": "A07",
+      "question": "明天天气怎么样？",
+      "expected": "ABSTAIN",
+      "requiredSections": [],
+      "concepts": [],
+      "forbiddenPhrases": []
+    }
+  ]
+}
