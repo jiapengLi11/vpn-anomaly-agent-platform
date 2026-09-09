@@ -1,6 +1,6 @@
 <template>
   <section class="page-enter">
-    <router-link to="/tasks" class="back-link"><AppIcon name="arrow" />返回任务中心</router-link>
+    <router-link :to="backPath" class="back-link"><AppIcon name="arrow" />{{ backLabel }}</router-link>
     <div class="page-heading detail-heading"><div><h1>{{ preview?.summary?.fileName || task?.fileName || '任务分析详情' }}</h1><p class="mono">案卷编号 {{ route.params.taskId }}</p></div><div class="heading-actions"><el-button :loading="store.detailLoading" @click="store.loadTask(route.params.taskId)"><AppIcon name="refresh" />刷新</el-button><el-button v-if="preview" type="primary" @click="download('report')"><AppIcon name="download" />下载报告</el-button></div></div>
     <div v-if="store.detailError" class="notice notice-warning" role="alert">{{ store.detailError }}<button @click="store.loadTask(route.params.taskId)">重新加载</button></div>
     <el-skeleton v-if="store.detailLoading" :rows="8" animated />
@@ -52,6 +52,9 @@ import CandidateExplorer from "../components/workspace/CandidateExplorer.vue";
 import AgentTracePanel from "../components/result/AgentTracePanel.vue";
 const store = usePlatformStore(), route = useRoute();
 const tab = ref("overview");
+const fromReports = computed(() => route.path.startsWith("/reports/"));
+const backPath = computed(() => fromReports.value ? "/reports" : "/tasks");
+const backLabel = computed(() => fromReports.value ? "返回研判报告" : "返回任务中心");
 const task = computed(() => store.currentTask), preview = computed(() => store.currentPreview);
 const gate = computed(() => preview.value?.summary?.candidateGate);
 const backend = computed(() => preview.value?.summary?.modelExecution?.actualModelBackend);

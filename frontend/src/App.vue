@@ -66,8 +66,8 @@ const navigation = [
   { path: "/reports", label: "研判报告", icon: "file" }, { path: "/knowledge", label: "知识检索", icon: "book" },
   { path: "/billing", label: "用量与计费", icon: "wallet" }
 ];
-const activeSection = computed(() => route.path.startsWith("/tasks/") ? "/tasks" : route.path);
-const pageTitle = computed(() => route.path.startsWith("/tasks/") ? "任务详情" : navigation.find(item => item.path === route.path)?.label || "工作台");
+const activeSection = computed(() => route.path.startsWith("/tasks/") ? "/tasks" : route.path.startsWith("/reports/") ? "/reports" : route.path);
+const pageTitle = computed(() => route.path.startsWith("/tasks/") ? "任务详情" : route.path.startsWith("/reports/") ? "研判详情" : navigation.find(item => item.path === route.path)?.label || "工作台");
 const activeCount = computed(() => (store.workbench?.statusCounts?.PROCESSING || 0) + (store.workbench?.statusCounts?.WAITING || 0));
 async function switchMode(value) {
   const url = new URL(location.href);
