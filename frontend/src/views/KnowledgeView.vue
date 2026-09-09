@@ -1,6 +1,6 @@
 <template>
   <section class="page-enter knowledge-qa">
-    <div class="page-heading"><div><h1>知识问答</h1><p>了解流量特征、模型原理与研判方法，回答附带可查看的资料来源。</p></div><el-button :disabled="busy || !turns.length" @click="reset">新对话</el-button></div>
+    <div class="page-heading"><div><h1>知识问答</h1><p>直接提问或添加规则、日志和 PCAP；系统按需检索、读取或创建分析任务。</p></div><el-button :disabled="busy || !turns.length" @click="reset">新对话</el-button></div>
     <div class="qa-layout">
       <div class="panel conversation-panel">
         <div class="qa-mode"><span>{{ provider === 'deepseek' ? 'DeepSeek 知识问答' : '公开资料体验' }}<router-link to="/billing">免费问答 {{ knowledgeRemaining }} / 5</router-link></span><label><input v-model="provider" type="checkbox" true-value="deepseek" false-value="demo" :disabled="!localModelAvailable || busy" />使用本地 DeepSeek</label></div>
@@ -16,7 +16,7 @@
         </div>
         <div v-else class="qa-turns" aria-live="polite">
           <article v-for="(turn,index) in turns" :key="turn.id" class="qa-turn">
-            <div class="user-question"><span>我的问题</span><p>{{ turn.question }}</p></div>
+            <div class="user-question"><span>我的问题</span><p>{{ turn.question }}</p><small v-if="turn.attachmentName" class="turn-attachment">附件：{{ turn.attachmentName }}</small></div>
             <div class="assistant-answer"><span class="answer-label">{{ (turn.answer?.provider || turn.provider) === 'deepseek' ? 'DeepSeek 回答' : '知识库参考' }}</span>
               <p v-if="!turn.answer && !turn.error && busy">{{ turn.stage === 'generating' ? '正在生成，草稿尚未完成引用校验…' : '正在检索资料…' }}</p>
               <p v-if="turn.draft" class="stream-draft">{{ turn.draft }}</p>
@@ -27,14 +27,17 @@
                 <div v-for="(paragraph,p) in turn.answer.paragraphs" :key="p" class="answer-paragraph"><p>{{ paragraph.text }}</p><button v-for="id in paragraph.sourceIds" :key="id" class="citation" @click="showSource(index,id)">[{{ sourceNumber(turn,id) }}] 查看来源</button></div>
                 <div v-if="turn.answer.followUps?.length" class="follow-ups"><span>继续了解</span><button v-for="q in turn.answer.followUps" :key="q" :disabled="busy" @click="question=q">{{ q }}</button></div>
                 <details v-if="turn.answer.model" class="answer-meta"><summary>本次回答信息</summary><p>{{ turn.answer.model }} · {{ turn.answer.elapsedMs }} ms · {{ turn.answer.usage?.total_tokens ?? '未提供' }} tokens</p><p v-if="turn.answer.firstDraftMs != null">首段可见草稿：{{ turn.answer.firstDraftMs }} ms</p><p>引用 ID 已核对；不代表逐句事实校验完成。</p></details>
+                <router-link v-if="turn.answer.taskId" :to="`/tasks/${turn.answer.taskId}`" class="task-result-link">打开流量分析任务</router-link>
+                <details v-if="turn.tools" class="tool-audit"><summary>{{ turn.tools.length ? `调用了 ${turn.tools.length} 个工具` : '未调用工具' }}</summary><div><span v-for="tool in turn.tools" :key="tool.name"><b>{{ tool.label }}</b><small>{{ tool.mode }} · {{ tool.status }}</small></span></div><p>{{ turn.routeReason }}</p></details>
               </template>
             </div>
           </article>
         </div>
         <form class="qa-composer" @submit.prevent="submit">
           <label for="knowledge-question">{{ turns.length ? '继续提问' : '输入你的问题' }}</label>
+          <div v-if="attachment" class="attachment-chip"><span><strong>{{ attachment.name }}</strong><small>{{ attachmentKind }} · {{ formatSize(attachment.size) }}</small></span><button type="button" aria-label="移除附件" @click="clearAttachment">×</button></div>
           <textarea id="knowledge-question" v-model="question" rows="3" maxlength="500" placeholder="例如：开放集拒识是什么意思？为什么不能把它看作恶意流量？" @keydown.ctrl.enter.prevent="submit" />
-          <div><small>{{ localModelAvailable ? '密钥仅由本地后端读取。Ctrl + Enter 发送' : '在线体验展示资料摘录；DeepSeek 需在本机配置密钥后使用。' }}</small><el-button v-if="busy" @click="stop">停止生成</el-button><el-button v-else type="primary" native-type="submit" :disabled="!question.trim()">{{ turns.length ? '发送追问' : '提问' }}</el-button></div>
+          <div><span class="composer-tools"><input ref="fileInput" hidden type="file" accept=".pcap,.pcapng,.txt,.md,.json,.csv,.log" @change="selectAttachment" /><button type="button" :disabled="busy" @click="fileInput?.click()">添加文件</button><small>{{ localModelAvailable ? '密钥仅由本地后端读取。Ctrl + Enter 发送' : '在线体验可读取文本附件；PCAP 任务需连接本地服务。' }}</small></span><el-button v-if="busy" @click="stop">停止生成</el-button><el-button v-else type="primary" native-type="submit" :disabled="!question.trim()">{{ turns.length ? '发送追问' : '提问' }}</el-button></div>
         </form>
       </div>
       <aside ref="sourcePanel" class="panel qa-sources">
@@ -60,6 +63,8 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { askKnowledge, localModelAvailable } from '../services/knowledgeAnswer';
+import { createTask, previewAgentPlan, uploadPcap } from '../services/api';
+import { usePlatformStore } from '../stores/platform';
 import { loadMemory, saveMemory, cleanSessions, buildHistory, MEMORY_KEY } from '../services/conversationMemory';
 import { loadAnswerEvaluation, loadKnowledgeEvaluation } from '../services/knowledgeEvaluation';
 import { billingLedger } from '../services/billingLedger';
@@ -77,11 +82,13 @@ const sessionId=ref(saved.sessions[0]?.id || crypto.randomUUID());
 const question=ref(''), turns=ref(saved.sessions[0]?.turns || []), provider=ref('demo'), busy=ref(false), activeTurn=ref(turns.value.length-1), activeId=ref(''), sourcePanel=ref(null);
 const evaluation=ref(null), answerEvaluation=ref(null);
 const knowledgeRemaining=ref(billingLedger.summary().freeRemaining.KNOWLEDGE_QA);
+const store=usePlatformStore(), attachment=ref(null), fileInput=ref(null);
+const attachmentKind=computed(()=>['pcap','pcapng'].includes(extension(attachment.value)) ? '流量抓包' : '文本资料');
 const activeSources=computed(() => turns.value[activeTurn.value]?.answer?.sources || turns.value[activeTurn.value]?.sources || []);
 let controller, stopped=false;
 function persist() {
   if(!remember.value) return;
-  const entry={id:sessionId.value,updatedAt:Date.now(),turns:turns.value};
+  const entry={id:sessionId.value,updatedAt:Date.now(),turns:turns.value.filter(turn=>!turn.attachmentName)};
   sessions.value=cleanSessions([entry,...sessions.value.filter(s=>s.id!==sessionId.value)]);
   memoryError.value=saveMemory(storage,sessions.value);
 }
@@ -98,24 +105,46 @@ function switchSession(id) {
 }
 function reset() { persist(); sessionId.value=crypto.randomUUID(); turns.value=[]; activeTurn.value=-1; activeId.value=''; question.value=''; }
 function stop() { stopped=true; controller?.abort(); }
+function extension(file){return String(file?.name||'').split('.').pop().toLowerCase()}
+function formatSize(size){return size<1024*1024 ? `${Math.max(1,Math.round(size/1024))} KB` : `${(size/1024/1024).toFixed(1)} MB`}
+function clearAttachment(){attachment.value=null;if(fileInput.value)fileInput.value.value=''}
+function selectAttachment(event){const file=event.target.files?.[0];if(!file)return;const allowed=['pcap','pcapng','txt','md','json','csv','log'];if(!allowed.includes(extension(file))||file.size>10*1024*1024){memoryError.value='附件格式不支持或超过 10 MB。';event.target.value='';return}memoryError.value='';attachment.value=file}
+function auditTools(preview,status='PLANNED'){const modes=Object.fromEntries((preview?.plan?.stages||[]).flatMap(stage=>(stage.stepIds||[]).map(id=>[id,stage.executionMode])));return (preview?.plan?.steps||[]).map(step=>({name:step.tool,label:{'document.inspect':'读取附件','knowledge.search':'检索知识库','protocol.hypothesize':'协议假设','analyst.review':'生成研判'}[step.tool]||step.tool,mode:modes[step.stepId]||'SERIAL',status}))}
 function sourceNumber(turn,id) { return (turn.answer.sources || []).findIndex(source=>source.id===id)+1; }
 function showSource(index,id) { activeTurn.value=index; activeId.value=id; sourcePanel.value?.scrollIntoView({behavior:'smooth',block:'nearest'}); }
 function percent(value) { return `${(value*100).toFixed(value===1 ? 0 : 1)}%`; }
 async function submit() {
   if(busy.value || !question.value.trim()) return;
-  const text=question.value.trim(); question.value=''; busy.value=true;
+  const text=question.value.trim(), file=attachment.value; question.value=''; clearAttachment(); busy.value=true;
   const history=buildHistory(turns.value);
-  const turn={id:crypto.randomUUID(),question:text,provider:provider.value,answer:null,error:'',draft:'',stage:'retrieving',sources:[]}; turns.value.push(turn);
+  const turn={id:crypto.randomUUID(),question:text,attachmentName:file?.name||'',provider:provider.value,answer:null,error:'',draft:'',stage:'retrieving',sources:[],tools:null,routeReason:''}; turns.value.push(turn);
   stopped=false; activeTurn.value=turns.value.length-1;
   const current=turns.value.at(-1), requestId=crypto.randomUUID(); let localAuthorization=null; controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),75000);
-  try { if(provider.value==='demo') localAuthorization=billingLedger.authorize('KNOWLEDGE_QA',requestId);
-    current.answer=await askKnowledge(text,history,provider.value,controller.signal,(event,data)=>{
+  try {
+    if(!file && /^(你好|您好|谢谢|你能做什么|帮助)[？?！!。\s]*$/.test(text)){
+      current.tools=[]; current.routeReason='说明性问题由本地响应策略直接处理，不检索资料也不调用外部模型。';
+      current.answer={status:'DIRECT_RESPONSE',provider:'demo',sources:[],paragraphs:[{text:'我可以回答流量特征与研判方法问题，也可以读取文本附件；连接本地服务后，还能从这里提交 PCAP 分析任务。',sourceIds:[]}],followUps:[],message:'本轮无需工具。'};
+    } else if(file && ['pcap','pcapng'].includes(extension(file))){
+      if(store.demoMode) throw new Error('公开在线演示不会上传 PCAP；请连接本地 Java 服务后创建分析任务。');
+      current.stage='uploading'; const uploaded=await uploadPcap(file);
+      const preview=await previewAgentPlan({message:text,context:{page:'knowledge',fileId:uploaded.fileId,fileName:uploaded.originalName}});
+      current.tools=auditTools(preview,'QUEUED'); current.routeReason='PCAP 属于长任务，上传后转交异步分析流水线。';
+      const task=await createTask({requestId, fileId:uploaded.fileId,analysisType:'VPN_PROXY_DETECTION',enableLlmReport:true,enableKnowledgeEnhance:true});
+      current.answer={status:'TASK_CREATED',provider:'demo',sources:[],paragraphs:[{text:`已接收 ${uploaded.originalName}，任务将在后台完成流聚合、特征分析、分类、检索和报告。`,sourceIds:[]}],followUps:[],message:'已创建异步流量分析任务。',taskId:task.taskId};
+    } else {
+      if(provider.value==='demo') localAuthorization=billingLedger.authorize('KNOWLEDGE_QA',requestId);
+      current.answer=await askKnowledge(text,history,file?'demo':provider.value,controller.signal,(event,data)=>{
     if(event==='draft') current.draft=data.text;
     if(event==='status') current.stage=data.stage;
     if(event==='sources') current.sources=data;
-  },requestId); if(localAuthorization && ['SUCCESS','EXTRACTIVE','NO_SOURCES','INSUFFICIENT'].includes(current.answer.status)) billingLedger.settle(localAuthorization); else if(localAuthorization) billingLedger.release(localAuthorization); activeId.value=''; }
-  catch(e) { billingLedger.release(localAuthorization); current.error=stopped ? '已停止生成，未完成草稿不会写入记忆。' : e.name==='AbortError' ? '回答超时，请稍后重试。' : e.message || '生成失败或连接中断，未完成草稿已撤回。'; question.value=text; }
+      },requestId);
+      if(file){const content=(await file.text()).slice(0,4000), source={id:`attachment-${current.id}`,title:file.name,content,source:'用户本地附件',section:'本轮只读摘录',version:'session-only',sourceHash:'not-persisted'};current.answer.sources=[source,...(current.answer.sources||[])];current.answer.paragraphs=[{text:`附件摘录：\n${content.slice(0,1200)}`,sourceIds:[source.id]},...(current.answer.paragraphs||[])];current.answer.message='文本附件只在浏览器当前会话读取，未发送给外部模型；同时完成公开知识检索。';current.tools=[{name:'document.inspect',label:'读取附件',mode:'PARALLEL',status:'SUCCESS'},{name:'knowledge.search',label:'检索知识库',mode:'PARALLEL',status:'SUCCESS'}];current.routeReason='附件读取与知识检索互不依赖，因此并行执行后合并依据。'}else{current.tools=[{name:'knowledge.search',label:'检索知识库',mode:'SERIAL',status:'SUCCESS'}];current.routeReason=provider.value==='deepseek'?'先检索公开资料，再流式生成带引用回答。':'当前为确定性资料检索与摘录。'}
+      if(localAuthorization && ['SUCCESS','EXTRACTIVE','NO_SOURCES','INSUFFICIENT'].includes(current.answer.status)) billingLedger.settle(localAuthorization); else if(localAuthorization) billingLedger.release(localAuthorization);
+      activeId.value='';
+    }
+  }
+  catch(e) { billingLedger.release(localAuthorization); current.error=stopped ? '已停止生成，未完成草稿不会写入记忆。' : e.name==='AbortError' ? '回答超时，请稍后重试。' : e.message || '生成失败或连接中断，未完成草稿已撤回。'; question.value=text; if(file)attachment.value=file; }
   finally { knowledgeRemaining.value=billingLedger.summary().freeRemaining.KNOWLEDGE_QA; current.draft=''; clearTimeout(timer); busy.value=false; persist(); }
 }
 function refreshQuota(){knowledgeRemaining.value=billingLedger.summary().freeRemaining.KNOWLEDGE_QA}
@@ -130,6 +159,7 @@ onUnmounted(()=>{controller?.abort();window.removeEventListener('billing-updated
 .topic-list {display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:28px;}.topic-list button {text-align:left;padding:18px;border:1px solid #dce6e4;background:#fafcfb;border-radius:4px;cursor:pointer;}.topic-list span {display:block;font-size:12px;color:#217d86;margin-bottom:8px;}.topic-list strong {font-size:14px;font-weight:500;color:#28444e;line-height:1.6;}.topic-list button:hover {border-color:#5ba836;}
 .qa-turns {padding:0 26px;}.qa-turn {padding:24px 0;border-bottom:1px solid #e0e8e8;}.user-question {background:#edf4ef;padding:14px 18px;border-radius:4px;margin-bottom:22px;}.user-question span,.answer-label {font-size:12px;color:#48685e;font-weight:600;}.user-question p {margin:6px 0 0;color:#233f35;white-space:pre-wrap;overflow-wrap:anywhere;}
 .answer-paragraph p {white-space:pre-wrap;overflow-wrap:anywhere;}.answer-notice {margin-top:10px;}.citation {border:0;background:#eef6f6;color:#186774;font-size:12px;padding:5px 8px;margin:0 6px 6px 0;border-radius:3px;cursor:pointer;}.follow-ups {display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;font-size:12px;}.follow-ups button {background:white;border:1px solid #ccdedd;padding:7px;color:#276c74;cursor:pointer;}.answer-meta {font-size:12px;margin-top:14px;color:#627881;}.qa-error {color:#a34527;}
+.turn-attachment{margin-top:8px;color:#277b76}.task-result-link{display:inline-block;margin-top:12px;color:#197b78;font-size:13px;font-weight:600}.tool-audit{margin-top:16px;padding-top:12px;border-top:1px solid #e0e8e5;color:#60777c;font-size:12px}.tool-audit>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.tool-audit>div>span{padding:8px 10px;border:1px solid #dbe5e1;background:#f8faf9}.tool-audit b,.tool-audit small{display:block}.tool-audit p{margin:10px 0 0;font-size:11px}.attachment-chip{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:9px 11px;border-left:3px solid #3e9f83;background:#edf5f1}.attachment-chip strong,.attachment-chip small{display:block}.attachment-chip button{border:0;background:none;font-size:18px;color:#647b82}.composer-tools{display:flex;min-width:0;align-items:center;gap:10px}.composer-tools>button{padding:6px 9px;border:1px solid #bfd4cf;background:#fff;color:#276c74}.composer-tools small{min-width:0}
 .qa-composer {padding:24px;background:#fafcfb;}.qa-composer label {display:block;font-weight:600;font-size:13px;margin-bottom:10px;}.qa-composer textarea {box-sizing:border-box;width:100%;resize:vertical;border:1px solid #cbdcda;border-radius:5px;padding:14px;font:inherit;font-size:14px;line-height:1.7;}.qa-composer textarea:focus {outline:2px solid #2c9298;}.qa-composer>div {display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:12px;}
 .qa-sources {padding:24px;position:sticky;top:90px;}.qa-sources h2 {font-size:17px;}.sources-explainer {font-size:12px;}.source-empty {padding:24px 0;color:#5a717b;font-size:14px;line-height:1.7;}.qa-source {padding:18px 0;border-top:1px solid #dce6e4;}.qa-source h3 {font-size:14px;color:#244b55;line-height:1.6;margin:0;}.qa-source p {font-size:12px;overflow-wrap:anywhere;}.qa-source details {font-size:12px;margin-top:12px;color:#637982;}.qa-source.highlighted {background:#f0f8ef;border-left:3px solid #5ba836;padding-left:12px;}.qa-source small {overflow-wrap:anywhere;}summary {cursor:pointer;}button:focus-visible {outline:2px solid #228997;}
 .quality-baseline {margin-top:22px;padding-top:20px;border-top:1px solid #dce6e4;}.quality-baseline>div:first-child {display:flex;justify-content:space-between;color:#65808a;font-size:9px;letter-spacing:.08em;}.quality-baseline>div:first-child b {color:#36875b;}.quality-baseline h2 {margin-top:8px;}.quality-metrics {display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:14px 0;}.quality-metrics p {margin:0;padding:10px 6px;background:#f3f7f5;text-align:center;}.quality-metrics strong,.quality-metrics small {display:block;}.quality-metrics strong {color:#224e49;font-size:16px;}.quality-metrics small {font-size:9px;}

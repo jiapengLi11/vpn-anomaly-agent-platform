@@ -27,18 +27,18 @@
 已完成与待完成能力见 [实现状态](docs/implementation-status.md)。
 [Tool Router 与分层评测](docs/tool-routing-and-evaluation.md)说明路由策略、评测边界及后续层次。
 [回答质量开发基线](docs/answer-quality-evaluation.md)展示可复现的摘录模式实测、自动合同和人工复核边界。
-[Agent 编排中心](docs/agent-orchestration.md)展示意图识别、服务端计划编译、运行策略与 SSE 审计闭环。
+[问答内工具控制面](docs/agent-orchestration.md)展示意图识别、服务端计划编译、运行策略与 SSE 审计闭环。
 
 工具调用还提供一个受 Tool Router 约束的本地 MCP Bridge：`POST /api/mcp` 支持 `tools/list` 和 `tools/call`，
 工具定义带 JSON Schema，未知工具和非法参数在执行前拒绝，分析调用继续经过 AgentWorkflow 和计费门禁。
 
-## Agent orchestration console
+## Tool control inside knowledge Q&A
 
-自然语言入口不会直接把完整工具列表交给模型。系统先识别有限意图，再由服务端注册表重建依赖、权限、失败策略和 DAG。知识问答只绑定本地只读检索；PCAP 请求可以预览三工具链，但未绑定或外部计费步骤不能从这个入口执行；未知工具在编译期整单拒绝。
+自然语言、文本附件和 PCAP 共用知识问答入口，不再要求用户进入单独的 Agent 页面。系统不会把完整工具列表交给模型，而是先识别有限意图，再由服务端注册表重建依赖、权限、失败策略和 DAG。零工具说明直接回答；文本附件在浏览器当前会话只读解析，并与知识检索并行；PCAP 只有连接完整本地平台后才上传并创建异步任务。
 
-![公开只读 PCAP 三工具计划预览](docs/assets/agent-orchestration-public-static.png)
+![知识问答与工具调用](docs/assets/knowledge-assistant-tools.png)
 
-[在线查看静态计划](https://jiapengli11.github.io/vpn-anomaly-agent-platform/#/agent)；本机启动 `8090` API 后可执行只读知识检索并查看 SSE 事件。公开站点明确标注为只读快照，不会伪装成在线 Agent。
+[在线体验统一知识入口](https://jiapengli11.github.io/vpn-anomaly-agent-platform/#/knowledge)。公开站可完成零工具回答、文本只读摘录和浏览器知识检索；PCAP 上传需要本地完整平台，公开页面不会伪装为在线分析服务。旧 `#/agent` 地址仅重定向到知识页。
 
 ## Usage and sandbox billing
 
@@ -58,7 +58,7 @@
 
 ## Search the knowledge base
 
-知识模块支持连续提问、真实 SSE、停止生成、可选本机会话记忆、引用跳转与本地 DeepSeek 回答。
+知识模块支持连续提问、文本附件、PCAP 任务入口、真实 SSE、停止生成、可选本机会话记忆、引用跳转与本地 DeepSeek 回答。附件轮次不会写入七天会话记忆，文本默认不发送给外部模型。
 [问答与密钥配置](docs/knowledge-qa.md)说明两种运行方式和专用 Skill。
 公开站默认显示原文摘录；真正的模型回答需要本地服务和你的 API Key。
 
