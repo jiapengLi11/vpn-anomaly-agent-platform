@@ -20,6 +20,26 @@
 但候选仍需经过同一个注册表、参数 schema、依赖和权限策略，不能把模型输出直接当执行计划。
 `GET /api/tools` 只暴露注册元数据，不暴露密钥或函数对象。
 
+## Plan Compiler 与 DAG Executor
+
+Tool Discovery 的候选不能直接执行。公开版新增 `tool-dag-plan-v1`：模型或规则只能建议有限工具名称，
+`PlanCompiler` 再从服务端注册表展开依赖闭包并校验意图、权限、步数和依赖环。建议对象自行提供的
+`dependsOn`、`parallel`、`requiredPermissions` 等字段不会被信任，只会进入忽略审计。
+
+```text
+Tool proposal
+  -> registry dependency closure
+  -> permission / cycle / size gate
+  -> deterministic topology stages
+  -> bounded DAG executor
+```
+
+只有无副作用且不共享 `concurrencyKey` 的同层工具可以并行；外部计费和状态变更工具强制串行。
+`FAIL` 停止关键路径，`DEGRADE` 仅记录异常类型，`ALL_DONE` Join 可继续消费另一分支结果；公开审计不保存
+工具原始结果或异常正文。`tools/demo_plan_compiler.py` 使用五个合成工具实际生成
+`SERIAL -> PARALLEL -> SERIAL -> SERIAL` 计划，并通过 `threading.Barrier` 验证两个分支同时进入执行。
+它是进程内控制面演示，不代表分布式调度、崩溃恢复或千级 Tool 压测已经完成。
+
 ## MCP Bridge
 
 `POST /api/mcp` 提供应用内 JSON-RPC 2.0 适配层：`tools/list` 返回同一份注册表的名称、描述、输入 schema、版本、依赖和最大调用次数；`tools/call` 只允许注册工具，并在执行前校验必填字段、类型、长度和数量上限。

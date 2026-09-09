@@ -98,6 +98,9 @@ class AgentWorkflowTest(unittest.TestCase):
         self.assertEqual(rejected['selectedTools'], [])
         self.assertEqual([item['reason'] for item in rejected['rejectedTools']],
                          ['TOOL_NOT_REGISTERED', 'MISSING_DEPENDENCY'])
+        mixed = route_tools(context, ['shell.exec', 'knowledge.search', 'analyst.review'])
+        self.assertEqual(mixed['status'], 'REJECTED')
+        self.assertEqual(mixed['selectedTools'], [])
         incomplete = route_tools(context, ['knowledge.search'])
         self.assertEqual(incomplete['selectedTools'], [])
         self.assertEqual(incomplete['rejectedTools'][0]['reason'], 'REQUIRED_TERMINAL_TOOL_NOT_REQUESTED')

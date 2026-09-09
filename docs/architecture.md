@@ -37,6 +37,11 @@ The `no candidates` edge short-circuits routing, retrieval and model calls. A ca
 an unknown requested tool, or a missing dependency is also stopped before execution. This saves cost and makes the skip visible in
 the trace rather than hiding it as a successful model response.
 
+An additive generic control-plane demo treats model output as a tool-name proposal, not an executable plan. `PlanCompiler` rebuilds
+dependencies, permissions, failure policy, side-effect constraints and topology from the server registry. `DagExecutor`
+then runs dependency stages with bounded in-process concurrency. This local implementation demonstrates deterministic
+fan-out/join semantics; it has not replaced the stable six-node runtime graph and is not a distributed scheduler or a scale benchmark.
+
 ## Claim contract
 
 Allowed claim types are `OBSERVATION`, `INVESTIGATE`, and `LIMITATION`. The gate rejects `MALICIOUS`, `BENIGN`,

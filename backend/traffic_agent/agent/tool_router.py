@@ -10,6 +10,10 @@ TOOL_CATALOG = {
         'version': '1.0', 'kind': 'RETRIEVAL', 'external': False,
         'purpose': 'Retrieve compact background knowledge from admitted evidence codes.',
         'requires': [], 'maxCalls': 1,
+        'failurePolicy': 'DEGRADE', 'dependencyMode': 'ALL_DONE',
+        'readOnly': True, 'idempotent': True, 'sideEffect': 'NONE',
+        'requiredPermissions': ['knowledge:read'], 'concurrencyKey': None,
+        'supportedIntents': ['PCAP_INVESTIGATION', 'KNOWLEDGE_QA', 'REPORT_EXPLAIN'],
         'inputSchema': {
             'type': 'object',
             'properties': {
@@ -23,6 +27,10 @@ TOOL_CATALOG = {
         'version': '1.0', 'kind': 'MODEL', 'external': True,
         'purpose': 'Generate a review brief from admitted evidence and retrieved knowledge.',
         'requires': ['knowledge.search'], 'maxCalls': 1,
+        'failurePolicy': 'DEGRADE', 'dependencyMode': 'ALL_DONE',
+        'readOnly': True, 'idempotent': False, 'sideEffect': 'EXTERNAL_BILLABLE',
+        'requiredPermissions': ['ai:invoke'], 'concurrencyKey': 'llm-provider',
+        'supportedIntents': ['PCAP_INVESTIGATION', 'REPORT_EXPLAIN'],
         'inputSchema': {
             'type': 'object',
             'properties': {
@@ -84,6 +92,9 @@ def route_tools(context: Dict[str, Any], requested_tools: Iterable[str] | None =
     if 'analyst.review' not in selected:
         if selected:
             rejected.append({'name': 'analyst.review', 'reason': 'REQUIRED_TERMINAL_TOOL_NOT_REQUESTED'})
+        selected = []
+    # Explicit proposals are atomic: never run the valid remainder of a mixed invalid request.
+    if rejected:
         selected = []
     return {'routerVersion': ROUTER_VERSION, 'status': 'READY' if selected else 'REJECTED',
             'selectedTools': [{'name': name, 'version': TOOL_CATALOG[name]['version'],

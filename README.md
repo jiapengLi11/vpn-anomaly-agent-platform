@@ -17,7 +17,7 @@
 - `SequenceClassifier` 是可替换接口，分类结果只是二级证据，不等于恶意概率。
 - Candidate Gate 先筛选调查对象，零候选时短路 RAG 和模型调用。
 - Security Admission 最多放行 20 条候选，稳定化名 IP/域名并移除本地路径。
-- Tool Router 按注册表、证据条件与依赖顺序生成执行计划，拒绝未知工具和越级调用。
+- Tool Router 对主链做失败关闭；独立 Plan Compiler 演示从服务端注册表重建依赖、权限与串并行阶段。
 - LangGraph 编排路由、检索、分析、校验与收敛，所有节点产生可审计 trace。
 - Claim Gate 只接受带有效证据 ID 的观察、调查建议和限制说明。
 - 最终 `securityVerdict` 固定为 `UNKNOWN`，不允许 LLM 自动封禁。
@@ -85,6 +85,7 @@ python -m venv .venv
 $env:PYTHONPATH="backend"
 & .\.venv\Scripts\python.exe -m unittest discover -s backend\tests -v
 & .\.venv\Scripts\python.exe -m traffic_agent.demo
+& .\.venv\Scripts\python.exe tools\demo_plan_compiler.py
 ```
 
 Linux/macOS 使用 `PYTHONPATH=backend`。
@@ -110,7 +111,7 @@ npm run dev
 
 ## Verification and evaluation
 
-- 51 个 Python 测试覆盖 Agent/API、MCP Bridge、Tool Router、检索、回答评测、流式取消与引用校验；19 个 Node 测试覆盖检索一致性、评测产物、SSE 分帧、会话记忆、追问策略与计费账本。
+- 58 个 Python 测试覆盖 Agent/API、MCP Bridge、Tool Router、Plan Compiler、DAG 并发、检索、回答评测、流式取消与引用校验；19 个 Node 测试覆盖检索一致性、评测产物、SSE 分帧、会话记忆、追问策略与计费账本。
 - Vue production build 已验证，`npm audit` 为 0 个已知漏洞。
 - Playwright CLI 已验证 1440px 与 390px 关键页面，浏览器控制台 0 错误。
 - CI 重建合成数据，执行测试、评测门槛和前端构建，并检查生成报告未漂移。
