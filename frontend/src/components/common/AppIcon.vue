@@ -16,6 +16,7 @@ const icons = {
   clock: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M12 7v5l3 2',
   wallet: 'M3 6h16v14H3z M3 9h16 M16 13h5v4h-5z M6 6V4h11v2',
   check: 'M5 12l4 4L19 6', download: 'M12 3v12 M7 10l5 5 5-5 M4 17v4h16v-4',
-  activity: 'M2 12h5l3-8 4 16 3-8h5', menu: 'M4 6h16 M4 12h16 M4 18h16'
+  activity: 'M2 12h5l3-8 4 16 3-8h5', menu: 'M4 6h16 M4 12h16 M4 18h16',
+  workflow: 'M6 3v5 M18 16v5 M6 8h7a5 5 0 0 1 5 5v3 M3 5l3-3 3 3 M15 19l3 3 3-3'
 };
 </script>

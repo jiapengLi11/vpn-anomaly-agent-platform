@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Literal
+import time
 import uuid
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import json
@@ -19,8 +20,10 @@ from .knowledge_stream import stream_answer, bounded_history
 from .agent.tool_router import public_catalog
 from .billing import BillingDenied, billing
 from .mcp_bridge import McpBridgeError, dispatch
+from .agent.run_coordinator import AgentRunCoordinator
 
 DEMO_USER_ID = 'demo-user'
+AGENT_RUN_COORDINATOR = AgentRunCoordinator()
 
 
 class ReviewRequest(BaseModel):
@@ -61,6 +64,16 @@ class McpRpcRequest(BaseModel):
     id: str | int | None = None
     method: str = Field(min_length=1, max_length=100)
     params: Dict[str, Any] = Field(default_factory=dict)
+
+
+class AgentPlanRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    context: Dict[str, Any] = Field(default_factory=dict)
+    requestedTools: List[str] = Field(default_factory=list, max_length=10)
+
+
+class AgentRunRequest(AgentPlanRequest):
+    requestId: str | None = Field(default=None, min_length=8, max_length=100)
 
 
 def authorize_or_402(request_id, operation):
@@ -201,3 +214,59 @@ def review(request: ReviewRequest):
     except Exception:
         billing.release(authorization)
         raise
+
+
+@app.post("/api/agent/plans/preview")
+def preview_agent_plan(request: AgentPlanRequest):
+    return AGENT_RUN_COORDINATOR.preview(request.message, context=request.context,
+                                         requested_tools=request.requestedTools)
+
+
+@app.post("/api/agent/runs")
+def create_agent_run(request: AgentRunRequest, background_tasks: BackgroundTasks):
+    run = AGENT_RUN_COORDINATOR.create_run(
+        request.message, context=request.context, requested_tools=request.requestedTools,
+        request_id=request.requestId)
+    if run["status"] == "PENDING":
+        background_tasks.add_task(AGENT_RUN_COORDINATOR.execute, run["runId"])
+    return run
+
+
+@app.get("/api/agent/runs/{run_id}")
+def get_agent_run(run_id: str):
+    try:
+        return AGENT_RUN_COORDINATOR.get_run(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="agent run not found") from exc
+
+
+@app.post("/api/agent/runs/{run_id}/cancel")
+def cancel_agent_run(run_id: str):
+    try:
+        return AGENT_RUN_COORDINATOR.cancel(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="agent run not found") from exc
+
+
+@app.get("/api/agent/runs/{run_id}/events")
+def stream_agent_run_events(run_id: str, after: int = Query(default=0, ge=0)):
+    try:
+        AGENT_RUN_COORDINATOR.get_run(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="agent run not found") from exc
+
+    def events():
+        sequence, deadline = after, time.monotonic() + 60
+        while time.monotonic() < deadline:
+            batch = AGENT_RUN_COORDINATOR.events_after(run_id, sequence)
+            for event in batch:
+                sequence = event["sequence"]
+                yield (f"id: {sequence}\nevent: {event['type']}\n"
+                       f"data: {json.dumps(event, ensure_ascii=False)}\n\n")
+            run = AGENT_RUN_COORDINATOR.get_run(run_id)
+            if AGENT_RUN_COORDINATOR.is_terminal(run["status"]) and not batch:
+                break
+            time.sleep(.1)
+
+    return StreamingResponse(events(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"})

@@ -1,4 +1,5 @@
 import { demoRequest, isDemoMode } from "./demo";
+import { buildStaticAgentPreview } from "./agentPreview.js";
 
 const DEFAULT_API_BASE = "http://127.0.0.1:8080";
 const API_KEY = "vpnApiBaseUrl";
@@ -93,4 +94,35 @@ export async function createTask(payload) {
     },
     body: JSON.stringify(payload)
   });
+}
+
+const browserHost = typeof location === "undefined" ? "" : location.hostname;
+const staticDemoRequested = typeof location !== "undefined"
+  && new URLSearchParams(location.search).get("demo") === "1";
+export const agentLiveAvailable = ["127.0.0.1", "localhost"].includes(browserHost)
+  && !staticDemoRequested;
+const AGENT_API = "http://127.0.0.1:8090";
+
+async function agentRequest(path, options = {}) {
+  const response = await fetch(`${AGENT_API}${path}`, { signal: AbortSignal.timeout(20000), ...options });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.detail || "Agent 服务请求失败");
+  return body;
+}
+
+export function previewAgentPlan(payload) {
+  if (!agentLiveAvailable) return Promise.resolve(buildStaticAgentPreview(payload));
+  return agentRequest("/api/agent/plans/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+}
+export function createAgentRun(payload) {
+  if (!agentLiveAvailable) return Promise.reject(new Error("公开快照为只读模式，请在本机启动后端执行。"));
+  return agentRequest("/api/agent/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+}
+export function fetchAgentRun(runId) { return agentRequest(`/api/agent/runs/${encodeURIComponent(runId)}`); }
+export function openAgentRunEvents(runId, handlers, after = 0) {
+  const source = new EventSource(`${AGENT_API}/api/agent/runs/${encodeURIComponent(runId)}/events?after=${after}`);
+  ["PLAN_COMPILED", "RUN_STARTED", "STEP_STARTED", "STEP_COMPLETED", "STEP_FAILED", "RUN_FINISHED", "RUN_FAILED", "RUN_CANCELLED"]
+    .forEach(type => source.addEventListener(type, event => handlers.onEvent?.(JSON.parse(event.data))));
+  source.onerror = () => handlers.onError?.(new Error("运行事件流已断开。"));
+  return () => source.close();
 }

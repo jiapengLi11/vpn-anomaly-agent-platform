@@ -42,6 +42,12 @@ dependencies, permissions, failure policy, side-effect constraints and topology 
 then runs dependency stages with bounded in-process concurrency. This local implementation demonstrates deterministic
 fan-out/join semantics; it has not replaced the stable six-node runtime graph and is not a distributed scheduler or a scale benchmark.
 
+`AgentRunCoordinator` closes the demo loop around that control plane. A preview resolves intent and compiles a plan, while run creation
+repeats both operations server-side instead of trusting a client-supplied DAG. Only the local read-only `knowledge.search` binding is
+executable. The three-step PCAP plan remains `PREVIEW_ONLY`, and unknown tools are rejected before a run is created. Sequence-numbered
+SSE events expose plan, step and terminal transitions without returning tool payloads or exception bodies. Run state is bounded and
+process-local, so restart recovery, tenant authorization and distributed event delivery remain explicitly out of scope.
+
 ## Claim contract
 
 Allowed claim types are `OBSERVATION`, `INVESTIGATE`, and `LIMITATION`. The gate rejects `MALICIOUS`, `BENIGN`,

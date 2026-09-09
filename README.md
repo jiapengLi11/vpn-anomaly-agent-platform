@@ -27,9 +27,18 @@
 已完成与待完成能力见 [实现状态](docs/implementation-status.md)。
 [Tool Router 与分层评测](docs/tool-routing-and-evaluation.md)说明路由策略、评测边界及后续层次。
 [回答质量开发基线](docs/answer-quality-evaluation.md)展示可复现的摘录模式实测、自动合同和人工复核边界。
+[Agent 编排中心](docs/agent-orchestration.md)展示意图识别、服务端计划编译、运行策略与 SSE 审计闭环。
 
 工具调用还提供一个受 Tool Router 约束的本地 MCP Bridge：`POST /api/mcp` 支持 `tools/list` 和 `tools/call`，
 工具定义带 JSON Schema，未知工具和非法参数在执行前拒绝，分析调用继续经过 AgentWorkflow 和计费门禁。
+
+## Agent orchestration console
+
+自然语言入口不会直接把完整工具列表交给模型。系统先识别有限意图，再由服务端注册表重建依赖、权限、失败策略和 DAG。知识问答只绑定本地只读检索；PCAP 请求可以预览三工具链，但未绑定或外部计费步骤不能从这个入口执行；未知工具在编译期整单拒绝。
+
+![公开只读 PCAP 三工具计划预览](docs/assets/agent-orchestration-public-static.png)
+
+[在线查看静态计划](https://jiapengli11.github.io/vpn-anomaly-agent-platform/#/agent)；本机启动 `8090` API 后可执行只读知识检索并查看 SSE 事件。公开站点明确标注为只读快照，不会伪装成在线 Agent。
 
 ## Usage and sandbox billing
 
@@ -96,7 +105,7 @@ Linux/macOS 使用 `PYTHONPATH=backend`。
 & .\.venv\Scripts\python.exe -m uvicorn traffic_agent.api:app --app-dir backend --reload --port 8090
 ```
 
-API 文档位于 `http://127.0.0.1:8090/docs`，可调用 `GET /api/knowledge/search?q=UDP` 和 `GET /api/tools`。
+API 文档位于 `http://127.0.0.1:8090/docs`，可调用 `GET /api/knowledge/search?q=UDP`、`GET /api/tools` 和 `POST /api/agent/plans/preview`。
 公开前端默认使用静态数据和浏览器检索；连接设置中的完整任务接口需要完整平台后端，不能仅用此 Agent API 替代。
 
 启动默认为合成数据只读模式的前端：
@@ -111,7 +120,7 @@ npm run dev
 
 ## Verification and evaluation
 
-- 59 个 Python 测试覆盖 Agent/API、MCP Bridge、Tool Router、Plan Compiler、DAG 并发与失败脱敏、检索、回答评测、流式取消与引用校验；19 个 Node 测试覆盖检索一致性、评测产物、SSE 分帧、会话记忆、追问策略与计费账本。
+- 64 个 Python 测试覆盖 Agent/API、MCP Bridge、Tool Router、Plan Compiler、DAG 执行与失败脱敏、运行协调器、检索、回答评测、流式取消与引用校验；21 个 Node 测试覆盖检索一致性、静态计划、评测产物、SSE 分帧、会话记忆、追问策略与计费账本。
 - Vue production build 已验证，`npm audit` 为 0 个已知漏洞。
 - Playwright CLI 已验证 1440px 与 390px 关键页面，浏览器控制台 0 错误。
 - CI 重建合成数据，执行测试、评测门槛和前端构建，并检查生成报告未漂移。

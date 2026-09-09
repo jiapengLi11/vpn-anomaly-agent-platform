@@ -4,8 +4,8 @@
 
 | 能力 | 当前实现 | 剩余工作 |
 | --- | --- | --- |
-| Vue 工作区 | 任务、报告、证据、Agent 轨迹、知识搜索 | 在线创建任务需要完整平台后端 |
-| Agent | 六节点 StateGraph、Tool Router、独立 Plan Compiler/进程内 DAG Executor 演示、受 schema 约束的本地 MCP Bridge、无候选/无证据短路、异常降级 | 将通用计划接入主图、正式 MCP 传输、分布式恢复、人审中断、千级 Tool 压测 |
+| Vue 工作区 | 任务、报告、证据、Agent 轨迹、知识搜索、编排策略台；GitHub Pages 可查看只读冻结计划 | 在线创建 PCAP 任务需要完整平台后端 |
+| Agent | 六节点 StateGraph、Tool Router、Plan Compiler、进程内 DAG Executor、运行协调器、SSE 审计、本地 MCP Bridge、无候选/无证据短路、异常降级 | 将 PCAP 通用计划接入真实工具、人审中断、持久化恢复、正式 MCP 传输、千级 Tool 压测 |
 | 文档检索 | 3 篇自编 Markdown、6 个切片、BM25、来源哈希；浏览器和 Python 排序一致 | 多格式解析、向量召回、RRF、重排、权限过滤 |
 | 模型分析 | DeepSeek 适配、JSON 校验、耗时和 token 记录；计费/鉴权错误安全透传；默认确定性演示 | 候选流报告真实验收、费用换算与独立质量评测 |
 | 知识问答 | 专用 Skill、真实 SSE、停止生成、引用校验、本机会话恢复、上下文预算和回答合同评测 | 语义支持度校验、查询改写、服务端会话与独立质量验收 |

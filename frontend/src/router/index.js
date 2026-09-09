@@ -9,6 +9,7 @@ export default createRouter({
     { path: "/tasks/:taskId", component: () => import("../views/ResultCenterView.vue") },
     { path: "/reports", component: () => import("../views/TaskCenterView.vue") },
     { path: "/knowledge", component: () => import("../views/KnowledgeView.vue") },
+    { path: "/agent", component: () => import("../views/AgentOrchestrationView.vue") },
     { path: "/billing", component: () => import("../views/BillingView.vue") },
     { path: "/results", redirect: "/reports" },
     { path: "/:pathMatch(.*)*", redirect: "/overview" }
