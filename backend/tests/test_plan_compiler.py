@@ -8,7 +8,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from traffic_agent.agent.tool_router import TOOL_CATALOG
-from traffic_agent.orchestration import DagExecutor, PlanCompilationError, PlanCompiler
+from traffic_agent.orchestration import (
+    DagExecutor, PlanCompilationError, PlanCompiler, ToolExecutionError,
+)
 
 
 def registry():
@@ -93,6 +95,26 @@ class PlanCompilerTest(unittest.TestCase):
 
 
 class DagExecutorTest(unittest.TestCase):
+    def test_required_failure_audit_does_not_expose_sibling_results(self):
+        required = registry()
+        required["traffic.classify"]["failurePolicy"] = "FAIL"
+        plan = PlanCompiler(required).compile(
+            intent="PCAP_INVESTIGATION", proposal=["evidence.join"],
+            granted_permissions=PERMISSIONS)
+
+        def fail(_context):
+            raise RuntimeError("private upstream response")
+
+        with self.assertRaises(ToolExecutionError) as raised:
+            DagExecutor(max_workers=2).execute(plan, {
+                "traffic.parse": lambda _context: ["flow"],
+                "traffic.classify": fail,
+                "traffic.features": lambda _context: {"private": "sibling result"},
+                "evidence.join": lambda _context: {},
+            })
+        self.assertNotIn("results", raised.exception.stage)
+        self.assertNotIn("sibling result", str(raised.exception.stage))
+
     def test_fanout_is_concurrent_and_join_receives_both_results(self):
         plan = PlanCompiler(registry()).compile(
             intent="PCAP_INVESTIGATION", proposal=["report.generate"],

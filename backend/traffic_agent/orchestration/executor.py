@@ -80,6 +80,6 @@ class ParallelToolExecutor:
         required_failure = next((item for item in outcomes if item["status"] == "FAILED"), None)
         if required_failure:
             error = ToolExecutionError(required_failure["stepId"], required_failure["errorType"] or "UnknownError")
-            error.stage = stage
+            error.stage = {key: value for key, value in stage.items() if key != "results"}
             raise error
         return stage

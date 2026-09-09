@@ -111,7 +111,7 @@ npm run dev
 
 ## Verification and evaluation
 
-- 58 个 Python 测试覆盖 Agent/API、MCP Bridge、Tool Router、Plan Compiler、DAG 并发、检索、回答评测、流式取消与引用校验；19 个 Node 测试覆盖检索一致性、评测产物、SSE 分帧、会话记忆、追问策略与计费账本。
+- 59 个 Python 测试覆盖 Agent/API、MCP Bridge、Tool Router、Plan Compiler、DAG 并发与失败脱敏、检索、回答评测、流式取消与引用校验；19 个 Node 测试覆盖检索一致性、评测产物、SSE 分帧、会话记忆、追问策略与计费账本。
 - Vue production build 已验证，`npm audit` 为 0 个已知漏洞。
 - Playwright CLI 已验证 1440px 与 390px 关键页面，浏览器控制台 0 错误。
 - CI 重建合成数据，执行测试、评测门槛和前端构建，并检查生成报告未漂移。
