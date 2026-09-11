@@ -28,6 +28,7 @@
 [Tool Router 与分层评测](docs/tool-routing-and-evaluation.md)说明路由策略、评测边界及后续层次。
 [回答质量开发基线](docs/answer-quality-evaluation.md)展示可复现的摘录模式实测、自动合同和人工复核边界。
 [问答内工具控制面](docs/agent-orchestration.md)展示意图识别、服务端计划编译、运行策略与 SSE 审计闭环。
+[RabbitMQ、Redis 与 Neo4j 集成实录](docs/middleware-integration.md)记录完整本地平台的事务 Outbox、幂等消费、图谱入库、真实验收和未完成边界；公开仓库不包含私有控制面、数据与凭据。
 
 工具调用还提供一个受 Tool Router 约束的本地 MCP Bridge：`POST /api/mcp` 支持 `tools/list` 和 `tools/call`，
 工具定义带 JSON Schema，未知工具和非法参数在执行前拒绝，分析调用继续经过 AgentWorkflow 和计费门禁。
